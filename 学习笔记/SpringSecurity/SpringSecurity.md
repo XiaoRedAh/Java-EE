@@ -1297,6 +1297,37 @@ public class LoginServiceImpl implements LoginServcie {
 }
 ```
 
+### 认证配置configure(HttpSecurity http) 详解
+
+```java
+@Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                //关闭csrf
+                .csrf().disable()
+                //不通过Session获取SecurityContext
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .authorizeRequests()
+                // 对于登录接口 允许匿名访问
+                .antMatchers("/user/login").anonymous()
+                // 除上面外的所有请求全部需要鉴权认证
+                .anyRequest().authenticated();
+
+        //把token校验过滤器添加到过滤器链中
+        http.addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+```
+
+1. 调用http的方法，每个方法相当于一种配置：http.配置什么.配置细节, 支持链式编程
+2. 不同配置之间用.and()隔开
+3. http.authorizeRequests()可以对请求认证规则进行配置
+   * .antMatchers()指定对某一请求方式/某一请求地址进行配置
+     .anyRequest()对任意请求进行统一配置（除了上面特别配置的之外）
+     * .anonymous()表示匿名访问：未登录可以访问，已登录不能访问
+     * .authenticated()表示需要登录才能访问
+     * .permmitAll()表示无论登录还是未登录都能访问
+
 ## 授权
 
 权限系统的作用：**不同的用户可以使用不同的功能**
@@ -1311,7 +1342,7 @@ public class LoginServiceImpl implements LoginServcie {
 
 在SpringSecurity中，会使用默认的FilterSecurityInterceptor来进行权限校验。它会从SecurityContextHolder获取其中的Authentication，然后获取其中的权限信息。当前用户是否拥有访问当前资源所需的权限。
 
-所以实现授权，只需要把当前登录用户的权限信息存入Authentication，然后设置各个资源所需要的权限即可。
+所以实现授权，只需要**把当前登录用户的权限信息存入Authentication，然后设置各个资源所需要的权限**即可。
 
 ### 授权实现
 
@@ -1319,13 +1350,17 @@ public class LoginServiceImpl implements LoginServcie {
 
 SpringSecurity提供了基于注解的权限控制方案，用注解去指定访问对应的资源所需的权限。
 
-先开启相关配置。
+① SecurityConfig配置类开启相关配置。
 
 ```java
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 ```
 
-​然后就可以使用对应的注解。@PreAuthorize
+② ​然后就可以使用对应的注解。
+
+用的比较多的：@PreAuthorize
+
+在访问资源之前进行权限认证
 
 ```java
 @RestController
@@ -1343,7 +1378,7 @@ public class HelloController {
 
 编写UserDetailsServiceImpl的时候，在查询出用户后还要获取对应的权限信息，封装到UserDetails中返回。
 
-先直接把权限信息写死封装到UserDetails中进行测试
+方便测试：先直接把权限信息写死封装到UserDetails
 
 之前定义了UserDetails的实现类LoginUser，想要让其能封装权限信息就要对其进行修改。
 
@@ -1417,7 +1452,7 @@ public class LoginUser implements UserDetails {
 
 LoginUser修改完后就可以在UserDetailsServiceImpl中把权限信息封装到LoginUser中了
 
-*注意：现在时写死权限进行测试，之后会从从数据库中查询权限信息*
+*注意：现在写死权限只是方便测试，实际上要从数据库中查询权限信息*
 
 ```java
 /**
@@ -1438,7 +1473,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new RuntimeException("用户名或密码错误");
         }
         //TODO 根据用户查询权限信息 添加到LoginUser中
-        List<String> list = new ArrayList<>(Arrays.asList("test"));
+        List<String> list = new ArrayList<>(Arrays.asList("test"));//将权限信息写死
         return new LoginUser(user,list);
     }
 }
@@ -1450,7 +1485,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
 RBAC权限模型（Role-Based Access Control）即：基于角色的权限控制。这是目前最常被开发者使用也是相对易用、通用权限模型。
 
-​	![image-20211222110249727](img/image-20211222110249727.png)
+![image-20211222110249727](img/image-20211222110249727.png)
 
 ##### 准备工作
 
@@ -1716,9 +1751,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
 在SpringSecurity中，如果在认证或者授权的过程中出现了异常会被ExceptionTranslationFilter捕获到。它会去判断是认证失败还是授权失败出现的异常。
 
-认证过程中出现的异常会被封装成AuthenticationException然后调用**AuthenticationEntryPoint**对象的方法去进行异常处理。
+**认证过程中出现的异常**会被封装成AuthenticationException然后调用**AuthenticationEntryPoint**对象的方法去进行异常处理。
 
-授权过程中出现的异常会被封装成AccessDeniedException然后调用**AccessDeniedHandler**对象的方法去进行异常处理。
+**授权过程中出现的异常**会被封装成AccessDeniedException然后调用**AccessDeniedHandler**对象的方法去进行异常处理。
 
 **综上，自定义异常处理只需要自定义AuthenticationEntryPoint和AccessDeniedHandler然后配置给SpringSecurity**
 
@@ -1954,7 +1989,7 @@ https://blog.csdn.net/freeking101/article/details/86537087
 
 SpringSecurity防止CSRF攻击的方式就是通过csrf_token。后端会生成一个csrf_token，前端发起请求的时候需要携带这个csrf_token。后端会有过滤器进行校验，如果没有携带或者是伪造的就不允许访问。
 
-CSRF攻击依靠的是cookie中所携带的认证信息。但是在前后端分离的项目中，我们的认证信息其实是token，而token并不是存储中cookie中，并且需要前端代码去把token设置到请求头中才可以，所以CSRF攻击也就不用担心了。
+CSRF攻击依靠的是cookie中所携带的认证信息。但是在前后端分离的项目中，认证信息其实是token，而token并不是存储中cookie中，并且需要前端代码去把token设置到请求头中才可以，所以CSRF攻击也就不用担心了。
 
 ### 认证成功处理器
 
