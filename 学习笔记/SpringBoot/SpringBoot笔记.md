@@ -1291,73 +1291,6 @@ public class WebApplication {
 }
 ```
 
-## 写一个小前后端分离的Demo
-
-### 前期准备
-
-创建空项目SeparateDemo，在空项目中创建两个SpringBoot模块：SpringBoot_static和SpringBoot_web
-
-SpringBoot_static：用于存放前端代码，静态资源
-SpringBoot_web：用于编写后端代码
-
-前端页面通过ajxa方式请求后端接口，操作数据
-
-分别在两个模块中添加web的starter和lombok依赖
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
-</dependency>
-
-<dependency>
-    <groupId>org.projectlombok</groupId>
-    <artifactId>lombok</artifactId>
-    <version>1.18.22</version>
-    <scope>provided</scope>
-</dependency>
-```
-
-因为默认的端口都是8080，会冲突，因此将Spring_web模块的端口改为80
-
-```yml
-server:
-  port: 80
-```
-
-## 整合Redis
-
-①依赖
-
-```xml
-        <!--redis-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-```
-
-②application.yml配置Redis地址和端口号
-
-```yml
-spring:
-  redis:
-    host: 127.0.0.1 #redis服务器ip地址
-    port: 6379  #redis端口号
-```
-
-③测试类中注入RedisTemplate使用
-
-```java
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @Test
-    public void testRedis(){
-        redisTemplate.opsForValue().set("name","三更");
-    }
-```
-
 ## 日志系统
 
 SpringBoot提供了丰富的日志系统，它几乎是开箱即用的。
@@ -1826,6 +1759,321 @@ spring:
       client:
         url: http://localhost:8888 #配置 Admin Server的地址
 ```
+
+## SpringBoot其他框架
+
+### 邮件Mail
+
+很多的网站中，都会遇到邮件或是手机号验证，也就是通过你的邮箱或是手机短信去接受网站发给你的注册验证信息，填写验证码之后，就可以完成注册了，同时，网站也会绑定你的手机号或是邮箱。
+
+像这样的功能，SpringBoot已经提供了封装好的邮件模块使用：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-mail</artifactId>
+</dependency>
+```
+
+#### 了解电子邮件
+
+电子邮件是一种通信方式，是互联网应用最广的服务。通过网络的电子邮件系统，用户可以以非常低廉的价格（不管发送到哪里，都只需负担网费，实际上就是把信息发送到对方服务器而已）、非常快速的方式，与世界上任何一个地方的电子邮箱用户联系。
+
+要在Internet上提供电子邮件功能，必须有专门的电子邮件服务器。例如现在Internet很多提供邮件服务的厂商：新浪、搜狐、163、QQ邮箱等，都有自己的邮件服务器。这些服务器类似于现实生活中的邮局，主要负责接收用户投递过来的邮件，并把邮件投递到邮件接收者的电子邮箱中。
+
+所有的用户都可以在电子邮件服务器上申请一个账号用于邮件发送和接收
+
+和Http一样，邮件发送也有自己的协议，也就是约定邮件数据长啥样以及如何通信。
+
+![img](https://images2015.cnblogs.com/blog/851491/201612/851491-20161202143243756-1715308358.png)
+
+比较常用的协议有两种：
+
+1. SMTP协议（主要用于发送邮件 Simple Mail Transfer Protocol）
+2. POP3协议（主要用于接收邮件 Post Office Protocol 3）
+
+整个发送/接收流程大致如下：
+
+![img](https://img2.baidu.com/it/u=3675146129,445744702&fm=253&fmt=auto&app=138&f=JPG?w=812&h=309)
+
+每个邮箱服务器都有一个smtp发送服务器和pop3接收服务器，比如要从QQ邮箱发送邮件到163邮箱，那么只需要通过QQ邮箱客户端告知QQ邮箱的smtp服务器需要发送邮件，以及邮件的相关信息，然后QQ邮箱的smtp服务器就会将邮件发送到163邮箱的pop3服务器上，163邮箱会通过163邮箱客户端告知对应用户收到一封新邮件。
+
+#### 邮箱发送
+
+想要实现给别人发送邮件，那么就需要连接到对应电子邮箱的smtp服务器上，并告知它要发送邮件。
+
+SpringBoot已经将最基本的底层通信全部实现了，使用时只需要关心smtp服务器的地址以及要发送的邮件长啥样即可。
+
+**以163邮箱为例**
+
+① 首先去163邮箱设置中开启smtp/pop3服务，开启后会得到一个随机生成的密钥，这个就是密码
+
+② 在配置文件中告诉SpringBootMail我们的smtp服务器的地址以及邮箱账号和密码
+
+```yaml
+spring:
+  mail:
+  	# 163邮箱的地址为smtp.163.com，直接填写即可
+    host: smtp.163.com
+    # 我的163邮箱账号
+    username: 123456@163.com
+    # 注意密钥是在开启smtp/pop3时自动生成的，记得保存一下，不然就找不到了
+    password: AZJTOAWZESLMHTNI
+    port: 465
+    properties:
+     from: m19925651773@163.com
+     mail:
+       smtp:
+         socketFactory:
+           class: javax.net.ssl.SSLSocketFactory
+```
+
+③ SimpleMailMessage封装邮件内容，JavaMailSender将邮件发送
+
+```java
+@SpringBootTest
+class SpringBootTestApplicationTests {
+
+    //JavaMailSender是专门用于发送邮件的对象，自动配置类已经提供了Bean
+    @Autowired
+    JavaMailSender sender;
+
+    @Test
+    void contextLoads() {
+      	//SimpleMailMessage是一个比较简易的邮件封装，支持设置一些比较简单内容
+        SimpleMailMessage message = new SimpleMailMessage();
+      	//设置邮件标题
+        message.setSubject("【XXX大学教务处】关于近期学校对您的处分决定");
+      	//设置邮件内容
+        message.setText("XXX同学您好，经监控和教务巡查发现，您近期存在旷课、迟到、早退、上课刷抖音行为，" +
+                "现已通知相关辅导员，请手写5000字书面检讨，并在2023年4月27日17点前交到辅导员办公室。");
+      	//设置邮件发送给谁，可以多个，这里就发给自己的QQ邮箱
+        message.setTo("自己的qq号@qq.com");
+      	//邮件发送者，这里要与配置文件中的保持一致
+        message.setFrom("123456@163.com");
+      	//发送
+        sender.send(message);
+    }
+
+}
+```
+
+④ 如果需要添加附件等更多功能，可以使用MimeMessageHelper来完成：
+
+```java
+@Test
+void contextLoads() throws MessagingException {
+    //创建一个MimeMessage
+    MimeMessage message = sender.createMimeMessage();
+    //使用MimeMessageHelper来修改MimeMessage中的信息
+    MimeMessageHelper helper = new MimeMessageHelper(message, true);
+    helper.setSubject("Test");
+    helper.setText("lbwnb");
+    helper.setTo("你的QQ号@qq.com");
+    helper.setFrom("javastudy111@163.com");
+  	//发送修改好的MimeMessage
+    sender.send(message);
+}
+```
+
+#### 邮件注册
+
+邮箱注册流程：
+1. 请求验证码
+2. 生成验证码并发送给对应邮箱（临时有效，注意设定过期时间）
+3. 用户输入验证码并填写注册信息
+4. 验证通过注册成功
+
+## 接口管理：Swagger
+
+在前后端分离项目中，前端人员需要知道我们后端会提供什么数据，根据后端提供的数据来进行前端页面渲染（在之前我们也演示过）这个时候，我们就需要编写一个API文档，以便前端人员随时查阅。
+
+但是这样的一个文档，我们也不可能单独写一个项目去进行维护，并且随着我们的后端项目不断更新，文档也需要跟随更新，这显然是很麻烦的一件事情，那么有没有一种比较好的解决方案呢？
+
+当然有，那就是丝袜哥：Swagger
+
+### 走进Swagger
+
+Swagger的主要功能如下：
+
+- 支持 API 自动生成同步的在线文档：使用 Swagger 后可以直接通过代码生成文档，不再需要自己手动编写接口文档了，对程序员来说非常方便，可以节约写文档的时间去学习新技术。
+- 提供 Web 页面在线测试 API：光有文档还不够，Swagger 生成的文档还支持在线测试。参数和格式都定好了，直接在界面上输入参数对应的值即可在线测试接口。
+
+结合Spring框架（Spring-fox），Swagger可以很轻松地利用注解以及扫描机制，来快速生成在线文档，以实现当我们项目启动之后，前端开发人员就可以打开Swagger提供的前端页面，查看和测试接口。依赖如下：
+
+```xml
+<dependency>
+    <groupId>io.springfox</groupId>
+    <artifactId>springfox-boot-starter</artifactId>
+    <version>3.0.0</version>
+</dependency>
+```
+
+SpringBoot 2.6以上版本修改了路径匹配规则，但是Swagger3还不支持，这里换回之前的，不然启动直接报错：
+
+```yaml
+spring:
+	mvc:
+		pathmatch:
+      matching-strategy: ant_path_matcher
+```
+
+项目启动后，我们可以直接打开：http://localhost:8080/swagger-ui/index.html，这个页面（要是觉得丑，UI是可以换的，支持第三方）会显示所有的API文档，包括接口的路径、支持的方法、接口的描述等，并且我们可以直接对API接口进行测试，非常方便。
+
+我们可以创建一个配置类去配置页面的相关信息：
+
+```java
+@Configuration
+public class SwaggerConfiguration {
+
+    @Bean
+    public Docket docket() {
+        return new Docket(DocumentationType.OAS_30).apiInfo(
+                new ApiInfoBuilder()
+                        .contact(new Contact("你的名字", "https://www.bilibili.com", "javastudy111*@163.com"))
+                        .title("图书管理系统 - 在线API接口文档")
+                        .build()
+        );
+    }
+}
+```
+
+### 接口信息配置
+
+虽然Swagger的UI界面已经可以很好地展示后端提供的接口信息了，但是非常的混乱，我们来看看如何配置接口的一些描述信息。
+
+首先我们的页面中完全不需要显示ErrorController相关的API，所以我们配置一下选择哪些Controller才会生成API信息：
+
+```java
+@Bean
+public Docket docket() {
+    ApiInfo info = new ApiInfoBuilder()
+            .contact(new Contact("你的名字", "https://www.bilibili.com", "javastudy111@163.com"))
+            .title("图书管理系统 - 在线API接口文档")
+            .description("这是一个图书管理系统的后端API文档，欢迎前端人员查阅！")
+            .build();
+    return new Docket(DocumentationType.OAS_30)
+            .apiInfo(info)
+            .select()       //对项目中的所有API接口进行选择
+            .apis(RequestHandlerSelectors.basePackage("com.example.controller"))
+            .build();
+}
+```
+
+接着我们来看看如何为一个Controller编写API描述信息：
+
+```java
+@Api(tags = "账户验证接口", description = "包括用户登录、注册、验证码请求等操作。")
+@RestController
+@RequestMapping("/api/auth")
+public class AuthApiController {
+```
+
+我们可以直接在类名称上面添加`@Api`注解，并填写相关信息，来为当前的Controller设置描述信息。
+
+接着我们可以为所有的请求映射配置描述信息：
+
+```java
+@ApiResponses({
+        @ApiResponse(code = 200, message = "邮件发送成功"),  
+        @ApiResponse(code = 500, message = "邮件发送失败")   //不同返回状态码描述
+})
+@ApiOperation("请求邮件验证码")   //接口描述
+@GetMapping("/verify-code")
+public RestBean<Void> verifyCode(@ApiParam("邮箱地址")   //请求参数的描述
+                                 @RequestParam("email") String email){
+```
+
+```java
+@ApiIgnore     //忽略此请求映射
+@PostMapping("/login-success")
+public RestBean<Void> loginSuccess(){
+    return new RestBean<>(200, "登陆成功");
+}
+```
+
+我们也可以为实体类配置相关的描述信息：
+
+```java
+@Data
+@ApiModel(description = "响应实体封装类")
+@AllArgsConstructor
+public class RestBean<T> {
+
+    @ApiModelProperty("状态码")
+    int code;
+    @ApiModelProperty("状态码描述")
+    String reason;
+    @ApiModelProperty("数据实体")
+    T data;
+
+    public RestBean(int code, String reason) {
+        this.code = code;
+        this.reason = reason;
+    }
+}
+```
+
+这样，我们就可以在文档中查看实体类简介以及各个属性的介绍了。
+
+最后我们再配置一下多环境：
+
+```xml
+<profiles>
+    <profile>
+        <id>dev</id>
+        <activation>
+            <activeByDefault>true</activeByDefault>
+        </activation>
+        <properties>
+            <environment>dev</environment>
+        </properties>
+    </profile>
+    <profile>
+        <id>prod</id>
+        <activation>
+            <activeByDefault>false</activeByDefault>
+        </activation>
+        <properties>
+            <environment>prod</environment>
+        </properties>
+    </profile>
+</profiles>
+```
+
+```xml
+<resources>
+    <resource>
+        <directory>src/main/resources</directory>
+        <excludes>
+            <exclude>application*.yaml</exclude>
+        </excludes>
+    </resource>
+    <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <includes>
+            <include>application.yaml</include>
+            <include>application-${environment}.yaml</include>
+        </includes>
+    </resource>
+</resources>
+```
+
+首先在Maven中添加两个环境，接着我们配置一下不同环境的配置文件：
+
+```yaml
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+springfox:
+  documentation:
+    enabled: false
+```
+
+在生产环境下，我们选择不开启Swagger文档以及JPA的数据库操作日志，这样我们就可以根据情况选择两套环境了。
+
 
 ## 打包运行
 
