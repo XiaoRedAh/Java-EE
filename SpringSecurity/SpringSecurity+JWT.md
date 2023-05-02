@@ -1343,9 +1343,9 @@ public class LoginServiceImpl implements LoginServcie {
 
 自定义UsernamePasswordAuthenticationFilter，实现类似功能
 
-#### 方案3
+#### 方案3（另一篇笔记）
 
-**另一篇笔记里有详细说明**
+**前后端分离项目模板用的就是方案3+Session的认证校验方式，可以去那篇笔记里看具体的使用**
 
 依然使用UsernamePasswordAuthenticationFilter（进行表单登录校验），按默认流程走，直到UserDetailsService这里，自己去实现UserDetailsService（进行数据库校验）。
 
