@@ -365,7 +365,6 @@ public class Phone {
 ​	注意：SPEL需要写到value属性中，不能写到ref属性。
 
 
-
 ## 6.配置文件
 
 ### 6.1 读取properties文件
