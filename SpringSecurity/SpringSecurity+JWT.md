@@ -1,4 +1,6 @@
-# SpringSecurity + JWT
+**SpringSecurity + JWT方案**
+
+>针对SpringBoot2.x+SpringSecurity5.x版本
 
 SpringSecurity是一个基于Spring开发的非常强大的权限验证框架，其核心功能包括：
 
@@ -85,7 +87,7 @@ public class HelloController {
 
 ​图中只展示了核心过滤器，其它的非核心过滤器并没有在图中展示。
 
-![image-20211214144425527](img/image-20211214144425527.png)
+![image-20211214144425527](https://image.itbaima.net/images/253/image-20230730156375800.png)
 
 **UsernamePasswordAuthenticationFilter（负责认证）**：负责处理在登录页面填写用户名密码后的登录请求
 
@@ -95,7 +97,7 @@ public class HelloController {
 
 可以通过Debug查看当前系统中SpringSecurity过滤器链中有哪些过滤器及它们的顺序。
 
-![image-20211214145824903](img/image-20211214145824903.png)
+![image-20211214145824903](https://image.itbaima.net/images/253/image-20230730153937003.png)
 
 ## 认证
 
@@ -105,7 +107,7 @@ public class HelloController {
 
 核心就是token（理解为加密的字符串）
 
-![image-20211215094003288](img/image-20211215094003288.png)
+![image-20211215094003288](https://image.itbaima.net/images/253/image-20230730154060669.png)
 
 ### 认证流程详解
 
@@ -117,7 +119,7 @@ SpringSecurity默认的认证流程
 
 *注意：默认的UserDetailsService接口的实现类是inMemoryUserDetailsManager,它是从内存中查。我们期望用数据库去查，那么就要自己去实现UserDetailsService*
 
-![image-20211214151515385](img/image-20211214151515385.png)
+![image-20211214151515385](https://image.itbaima.net/images/253/image-20230730159676361.png)
 
 Authentication接口: 它的实现类，表示当前访问系统的用户，封装了用户相关信息。
 
@@ -130,6 +132,8 @@ UserDetails接口：提供核心用户信息。通过UserDetailsService根据用
 ### 认证方案一
 
 #### 思路分析（重点）
+
+![img/image-20211215095331510.png](https://image.itbaima.net/images/253/image-20230730157782626.png)
 
 *登录*
 
@@ -965,7 +969,7 @@ There is no PasswordEncoder mapped for the id "null"
 
 因为现在数据库里的密码是明文存储的，如果想让用户的密码是明文存储，需要在密码前加{noop}。例如
 
-![image-20211216123945882](img/image-20211216123945882.png)
+![image-20211216123945882](https://image.itbaima.net/images/253/image-20230730157298191.png)
 
 这样登录的时候就可以用sg作为用户名，1234作为密码来登录了。
 
@@ -1312,7 +1316,7 @@ public class LoginServiceImpl implements LoginServcie {
 
 ### 其他认证方案
 
-![image-20211214151515385](img/image-20211214151515385.png)
+![image-20211214151515385](https://image.itbaima.net/images/253/image-20230730159676361.png)
 
 #### 回顾方案1
 
@@ -1667,7 +1671,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
 RBAC权限模型（Role-Based Access Control）即：基于角色的权限控制。这是目前最常被开发者使用也是相对易用、通用权限模型。
 
-![image-20211222110249727](img/image-20211222110249727.png)
+![image-20211222110249727](https://image.itbaima.net/images/253/image-20230730152931461.png)
 
 三个主要的表：
 * 用户表user
