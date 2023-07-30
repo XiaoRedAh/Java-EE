@@ -12,9 +12,9 @@ SpringSecurity是一个基于Spring开发的非常强大的权限验证框架，
 
 ​一般来说中大型的项目都是使用SpringSecurity来做安全框架，小项目用Shiro的比较多
 
-## 简单搭建
+# 简单搭建
 
-### 准备工作
+## 准备工作
 
 先搭建一个简单的SpringBoot工程
 
@@ -64,7 +64,7 @@ public class HelloController {
 }
 ```
 
-### 引入SpringSecurity
+## 引入SpringSecurity
 
 ​在SpringBoot项目中使用SpringSecurity只需要引入依赖即可实现
 
@@ -81,7 +81,7 @@ public class HelloController {
 
 ​必须登陆之后才能对接口进行访问。
 
-## SpringSecurity完整流程
+# SpringSecurity完整流程
 
 ​SpringSecurity的原理其实就是一个过滤器链，内部包含了提供各种功能的过滤器。
 
@@ -99,9 +99,9 @@ public class HelloController {
 
 ![image-20211214145824903](https://image.itbaima.net/images/253/image-20230730153937003.png)
 
-## 认证
+# 认证
 
-### 登录校验流程
+## 登录校验流程
 
 前后端分离项目中的登录校验流程：
 
@@ -109,7 +109,7 @@ public class HelloController {
 
 ![image-20211215094003288](https://image.itbaima.net/images/253/image-20230730154060669.png)
 
-### 认证流程详解
+## 认证流程详解
 
 想要知道如何实现自己的登录流程，就必须要先了解SpringSecurity提供的默认流程。
 
@@ -129,9 +129,9 @@ UserDetailsService接口：加载用户特定数据的核心接口。里面定�
 
 UserDetails接口：提供核心用户信息。通过UserDetailsService根据用户名获取处理的用户信息要封装成UserDetails对象返回。然后将这些信息封装到Authentication对象中。
 
-### 认证方案一
+## 认证方案一
 
-#### 思路分析（重点）
+## 思路分析（重点）
 
 ![img/image-20211215095331510.png](https://image.itbaima.net/images/253/image-20230730157782626.png)
 
@@ -156,7 +156,7 @@ UserDetails接口：提供核心用户信息。通过UserDetailsService根据用
   3. ​从redis中获取用户信息
   4. 封装Authentication对象​存入SecurityContextHolder
 
-#### 准备工作
+## 准备工作
 
 ①添加依赖
 
@@ -753,7 +753,7 @@ public class User implements Serializable {
 }
 ```
 
-#### 实现数据库校验用户
+## 实现数据库校验用户
 
 ​通过之前的分析，可以自定义一个UserDetailsService,让SpringSecurity使用我们的UserDetailsService。
 
@@ -877,7 +877,7 @@ public class MapperTest {
 }
 ```
 
-##### 核心代码实现
+### 核心代码实现
 
 ①创建一个类实现UserDetailsService接口，重写其中的方法。
 
@@ -973,7 +973,7 @@ There is no PasswordEncoder mapped for the id "null"
 
 这样登录的时候就可以用sg作为用户名，1234作为密码来登录了。
 
-##### 密码加密存储
+### 密码加密存储
 
 ​实际项目中不会把密码明文存储在数据库。
 
@@ -1020,7 +1020,7 @@ public void TestBCryptPasswordEncoder(){
     }
 ```
 
-##### 登录接口
+### 登录接口
 
 让SpringSecurity对自定义的登录接口放行,从而实现用户访问这个接口的时候不用登录也能访问。
 
@@ -1126,7 +1126,7 @@ public class LoginServiceImpl implements LoginServcie {
 }
 ```
 
-##### 认证过滤器
+### 认证过滤器
 
 需要自定义一个过滤器
 
@@ -1227,7 +1227,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 
-##### 退出登录
+### 退出登录
 
 1. 定义一个退出登录接口
 2. 获取SecurityContextHolder中的认证信息，通过它来得到userid，通过userid来删除redis中对应的数据。
@@ -1283,7 +1283,7 @@ public class LoginServiceImpl implements LoginServcie {
 }
 ```
 
-### configure(HttpSecurity http) 详解
+## configure(HttpSecurity http) 详解
 
 ```java
 @Override
@@ -1314,11 +1314,11 @@ public class LoginServiceImpl implements LoginServcie {
      * .authenticated()表示需要登录才能访问
      * .permmitAll()表示无论登录还是未登录都能访问
 
-### 其他认证方案
+## 其他认证方案
 
 ![image-20211214151515385](https://image.itbaima.net/images/253/image-20230730159676361.png)
 
-#### 回顾方案1
+### 回顾方案1
 
 **这种方案后期拓展（比如验证码校验）会比较方便（在Controller层里拓展，而不是像方案三那样添加过滤器）**
 
@@ -1343,11 +1343,11 @@ public class LoginServiceImpl implements LoginServcie {
   3. ​从redis中获取用户信息
   4. 封装Authentication对象​存入SecurityContextHolder
 
-#### 方案2
+### 方案2
 
 自定义UsernamePasswordAuthenticationFilter，实现类似功能
 
-#### 方案3（另一篇笔记）
+### 方案3（另一篇笔记）
 
 **前后端分离项目模板用的就是方案3+Session的认证校验方式，可以去那篇笔记里看具体的使用**
 
@@ -1357,7 +1357,7 @@ public class LoginServiceImpl implements LoginServcie {
 
 因为UsernamePasswordAuthenticationFilter仅仅做表单校验（用户名，密码），因此如果还要校验验证码的话，需要在它前面再加一个过滤器，在那个过滤器里校验验证码
 
-##### 认证成功处理器
+#### 认证成功处理器
 
 **注意：如果使用认证成功处理器，那其实就是另一种登录思路和实现**
 
@@ -1396,7 +1396,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 
-##### 认证失败处理器
+#### 认证失败处理器
 
 **注意：如果使用认证失败处理器，那其实就是另一种登录思路和实现**
 
@@ -1440,7 +1440,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 
-##### 注销成功处理器
+#### 注销成功处理器
 
 方案一的登录认证思路其实是绕过了UsernamePasswordAuthenticationFilter，那么就不存在调用LogoutSuccessHandler的情况
 
@@ -1484,11 +1484,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 
-#### 更多
+## 更多
 
 理解透上面那个图，其实对哪一个结点进行一些自定义设计都可以实现认证功能
 
-## 授权
+# 授权
 
 权限系统的作用：**不同的用户可以使用不同的功能**
 
@@ -1498,7 +1498,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 所以还需要在后台进行用户权限的判断，判断当前用户是否有相应的权限，必须具有所需权限才能进行相应的操作。
 
-### 授权基本流程
+## 授权基本流程
 
 在SpringSecurity中，会使用默认的FilterSecurityInterceptor来进行权限校验。它会从SecurityContextHolder获取其中的Authentication，然后获取其中的权限信息。然后判断当前用户是否拥有访问当前接口/资源所需的权限，如果有才能访问
 
@@ -1509,9 +1509,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
    * 认证过滤器中，用户校验成功后，还要把权限信息也放到Authentication里
 2. 然后设置各个接口/资源访问所需要的权限
 
-### 授权实现
+## 授权实现
 
-#### 设置访问权限
+## 设置访问权限
 
 SpringSecurity提供了基于注解的权限控制方案，用注解去指定访问对应的资源所需的权限。
 
@@ -1539,7 +1539,7 @@ public class HelloController {
 }
 ```
 
-#### 封装权限信息
+## 封装权限信息
 
 方便测试：先直接把权限信息写死封装到UserDetails
 
@@ -1663,11 +1663,11 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
     }
 ```
 
-#### 从数据库查询权限信息
+## 从数据库查询权限信息
 
 之前为了方便测试，权限信息都是写死的，实际上，权限信息应当是从数据库里拿到的
 
-##### RBAC权限模型
+### RBAC权限模型
 
 RBAC权限模型（Role-Based Access Control）即：基于角色的权限控制。这是目前最常被开发者使用也是相对易用、通用权限模型。
 
@@ -1684,7 +1684,7 @@ RBAC权限模型（Role-Based Access Control）即：基于角色的权限控制
 
 综上，使用RBAC权限模型进行查询，通常是一个五表联查的形式
 
-##### 准备工作
+### 准备工作
 
 ```sql
 
@@ -1854,7 +1854,7 @@ public class Menu implements Serializable {
 }
 ```
 
-##### 代码实现
+### 代码实现
 
 只需要根据用户id去查询到其所对应的权限信息即可。
 
@@ -1934,7 +1934,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 }
 ```
 
-## 自定义失败处理
+# 自定义失败处理
 
 希望在认证失败或者是授权失败的情况下也能和我们的接口一样返回相同结构的json，从而让前端能对响应进行统一的处理。
 
@@ -2006,7 +2006,7 @@ public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint {
                 accessDeniedHandler(accessDeniedHandler);
 ```
 
-## 跨域
+# 跨域
 
 浏览器出于安全的考虑，使用XMLHttpRequest对象发起HTTP请求时必须遵守同源策略(协议、域名、端口号都完全一致)，否则就是跨域的HTTP请求，默认情况下是被禁止的。
 
@@ -2071,9 +2071,9 @@ public class CorsConfig implements WebMvcConfigurer {
     }
 ```
 
-## 补充 
+# 补充 
 
-### 其它权限校验方法
+## 其它权限校验方法
 
 前面都是使用@PreAuthorize注解，然后在其中使用的是hasAuthority方法进行校验
 
@@ -2118,7 +2118,7 @@ hasAnyRole有任意的角色就可以访问。
     }
 ```
 
-### 自定义权限校验方法
+## 自定义权限校验方法
 
 定义自己的权限校验方法，在@PreAuthorize注解中使用自定义的方法。
 
@@ -2147,7 +2147,7 @@ public class SGExpressionRoot {
     }
 ```
 
-### 基于配置的权限控制
+## 基于配置的权限控制
 
 除了用注解设置访问权限外，还可以在配置类中，使用配置的方式对资源进行权限控制。
 
@@ -2181,7 +2181,7 @@ public class SGExpressionRoot {
     }
 ```
 
-### CSRF
+## CSRF
 
 CSRF是指跨站请求伪造（Cross-site request forgery），是web常见的攻击之一。
 
