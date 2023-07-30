@@ -1,6 +1,6 @@
 **SpringSecurity + JWT方案**
 
->针对SpringBoot2.x+SpringSecurity5.x版本
+针对SpringBoot2.x+SpringSecurity5.x版本
 
 SpringSecurity是一个基于Spring开发的非常强大的权限验证框架，其核心功能包括：
 
@@ -21,22 +21,22 @@ SpringSecurity是一个基于Spring开发的非常强大的权限验证框架，
 ① 设置父工程 添加依赖
 
 ```xml
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.0</version>
-    </parent>
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-    </dependencies>
+    <parent
+        <groupIdorg.springframework.boot</groupId
+        <artifactIdspring-boot-starter-parent</artifactId
+        <version2.5.0</version
+    </parent
+    <dependencies
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter-web</artifactId
+        </dependency
+        <dependency
+            <groupIdorg.projectlombok</groupId
+            <artifactIdlombok</artifactId
+            <optionaltrue</optional
+        </dependency
+    </dependencies
 ```
 
 ② 创建启动类
@@ -71,10 +71,10 @@ public class HelloController {
 入门案例。
 
 ```xml
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter-security</artifactId
+        </dependency
 ```
 
 ​引入依赖后在尝试去访问之前的接口就会自动跳转到一个SpringSecurity的默认登陆页面，默认用户名是user,密码会输出在控制台。
@@ -161,23 +161,23 @@ UserDetails接口：提供核心用户信息。通过UserDetailsService根据用
 ①添加依赖
 
 ```xml
-        <!--redis依赖-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <!--fastjson依赖-->
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-            <version>1.2.33</version>
-        </dependency>
-        <!--jwt依赖-->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt</artifactId>
-            <version>0.9.0</version>
-        </dependency>
+        <!--redis依赖--
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter-data-redis</artifactId
+        </dependency
+        <!--fastjson依赖--
+        <dependency
+            <groupIdcom.alibaba</groupId
+            <artifactIdfastjson</artifactId
+            <version1.2.33</version
+        </dependency
+        <!--jwt依赖--
+        <dependency
+            <groupIdio.jsonwebtoken</groupId
+            <artifactIdjjwt</artifactId
+            <version0.9.0</version
+        </dependency
 ```
 
 ② 添加Redis相关配置
@@ -188,19 +188,19 @@ com.sangeng.utils.FastJsonRedisSerializer
 /**
  * Redis使用FastJson序列化
  */
-public class FastJsonRedisSerializer<T> implements RedisSerializer<T>
+public class FastJsonRedisSerializer<T implements RedisSerializer<T
 {
 
     public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
-    private Class<T> clazz;
+    private Class<T clazz;
 
     static
     {
         ParserConfig.getGlobalInstance().setAutoTypeSupport(true);
     }
 
-    public FastJsonRedisSerializer(Class<T> clazz)
+    public FastJsonRedisSerializer(Class<T clazz)
     {
         super();
         this.clazz = clazz;
@@ -229,7 +229,7 @@ public class FastJsonRedisSerializer<T> implements RedisSerializer<T>
     }
 
 
-    protected JavaType getJavaType(Class<?> clazz)
+    protected JavaType getJavaType(Class<? clazz)
     {
         return TypeFactory.defaultInstance().constructType(clazz);
     }
@@ -244,9 +244,9 @@ public class RedisConfig {
 
     @Bean
     @SuppressWarnings(value = { "unchecked", "rawtypes" })
-    public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory connectionFactory)
+    public RedisTemplate<Object, Object redisTemplate(RedisConnectionFactory connectionFactory)
     {
-        RedisTemplate<Object, Object> template = new RedisTemplate<>();
+        RedisTemplate<Object, Object template = new RedisTemplate<();
         template.setConnectionFactory(connectionFactory);
 
         FastJsonRedisSerializer serializer = new FastJsonRedisSerializer(Object.class);
@@ -272,7 +272,7 @@ com.sangeng.domin.ResponseResult
 ```java
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
-public class ResponseResult<T> {
+public class ResponseResult<T {
     /**
      * 状态码
      */
@@ -435,7 +435,7 @@ public class RedisCache
      * @param key 缓存的键值
      * @param value 缓存的值
      */
-    public <T> void setCacheObject(final String key, final T value)
+    public <T void setCacheObject(final String key, final T value)
     {
         redisTemplate.opsForValue().set(key, value);
     }
@@ -448,7 +448,7 @@ public class RedisCache
      * @param timeout 时间
      * @param timeUnit 时间颗粒度
      */
-    public <T> void setCacheObject(final String key, final T value, final Integer timeout, final TimeUnit timeUnit)
+    public <T void setCacheObject(final String key, final T value, final Integer timeout, final TimeUnit timeUnit)
     {
         redisTemplate.opsForValue().set(key, value, timeout, timeUnit);
     }
@@ -484,9 +484,9 @@ public class RedisCache
      * @param key 缓存键值
      * @return 缓存键值对应的数据
      */
-    public <T> T getCacheObject(final String key)
+    public <T T getCacheObject(final String key)
     {
-        ValueOperations<String, T> operation = redisTemplate.opsForValue();
+        ValueOperations<String, T operation = redisTemplate.opsForValue();
         return operation.get(key);
     }
 
@@ -518,7 +518,7 @@ public class RedisCache
      * @param dataList 待缓存的List数据
      * @return 缓存的对象
      */
-    public <T> long setCacheList(final String key, final List<T> dataList)
+    public <T long setCacheList(final String key, final List<T dataList)
     {
         Long count = redisTemplate.opsForList().rightPushAll(key, dataList);
         return count == null ? 0 : count;
@@ -530,7 +530,7 @@ public class RedisCache
      * @param key 缓存的键值
      * @return 缓存键值对应的数据
      */
-    public <T> List<T> getCacheList(final String key)
+    public <T List<T getCacheList(final String key)
     {
         return redisTemplate.opsForList().range(key, 0, -1);
     }
@@ -542,10 +542,10 @@ public class RedisCache
      * @param dataSet 缓存的数据
      * @return 缓存数据的对象
      */
-    public <T> BoundSetOperations<String, T> setCacheSet(final String key, final Set<T> dataSet)
+    public <T BoundSetOperations<String, T setCacheSet(final String key, final Set<T dataSet)
     {
-        BoundSetOperations<String, T> setOperation = redisTemplate.boundSetOps(key);
-        Iterator<T> it = dataSet.iterator();
+        BoundSetOperations<String, T setOperation = redisTemplate.boundSetOps(key);
+        Iterator<T it = dataSet.iterator();
         while (it.hasNext())
         {
             setOperation.add(it.next());
@@ -559,7 +559,7 @@ public class RedisCache
      * @param key
      * @return
      */
-    public <T> Set<T> getCacheSet(final String key)
+    public <T Set<T getCacheSet(final String key)
     {
         return redisTemplate.opsForSet().members(key);
     }
@@ -570,7 +570,7 @@ public class RedisCache
      * @param key
      * @param dataMap
      */
-    public <T> void setCacheMap(final String key, final Map<String, T> dataMap)
+    public <T void setCacheMap(final String key, final Map<String, T dataMap)
     {
         if (dataMap != null) {
             redisTemplate.opsForHash().putAll(key, dataMap);
@@ -583,7 +583,7 @@ public class RedisCache
      * @param key
      * @return
      */
-    public <T> Map<String, T> getCacheMap(final String key)
+    public <T Map<String, T getCacheMap(final String key)
     {
         return redisTemplate.opsForHash().entries(key);
     }
@@ -595,7 +595,7 @@ public class RedisCache
      * @param hKey Hash键
      * @param value 值
      */
-    public <T> void setCacheMapValue(final String key, final String hKey, final T value)
+    public <T void setCacheMapValue(final String key, final String hKey, final T value)
     {
         redisTemplate.opsForHash().put(key, hKey, value);
     }
@@ -607,9 +607,9 @@ public class RedisCache
      * @param hKey Hash键
      * @return Hash中的对象
      */
-    public <T> T getCacheMapValue(final String key, final String hKey)
+    public <T T getCacheMapValue(final String key, final String hKey)
     {
-        HashOperations<String, String, T> opsForHash = redisTemplate.opsForHash();
+        HashOperations<String, String, T opsForHash = redisTemplate.opsForHash();
         return opsForHash.get(key, hKey);
     }
 
@@ -632,7 +632,7 @@ public class RedisCache
      * @param hKeys Hash键集合
      * @return Hash对象集合
      */
-    public <T> List<T> getMultiCacheMapValue(final String key, final Collection<Object> hKeys)
+    public <T List<T getMultiCacheMapValue(final String key, final Collection<Object hKeys)
     {
         return redisTemplate.opsForHash().multiGet(key, hKeys);
     }
@@ -643,7 +643,7 @@ public class RedisCache
      * @param pattern 字符串前缀
      * @return 对象列表
      */
-    public Collection<String> keys(final String pattern)
+    public Collection<String keys(final String pattern)
     {
         return redisTemplate.keys(pattern);
     }
@@ -787,17 +787,17 @@ CREATE TABLE `sys_user` (
 ​引入MybatisPuls和mysql驱动的依赖
 
 ```xml
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
-            <version>3.4.3</version>
-        </dependency>
-        <!--mysql驱动-->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.27</version>
-        </dependency>
+        <dependency
+            <groupIdcom.baomidou</groupId
+            <artifactIdmybatis-plus-boot-starter</artifactId
+            <version3.4.3</version
+        </dependency
+        <!--mysql驱动--
+        <dependency
+            <groupIdmysql</groupId
+            <artifactIdmysql-connector-java</artifactId
+            <version8.0.27</version
+        </dependency
 ```
 
 ​配置数据库信息
@@ -819,7 +819,7 @@ com.sangeng.mapper.UserMapper
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.sangeng.domin.User;
 @Repository 
-public interface UserMapper extends BaseMapper<User> {
+public interface UserMapper extends BaseMapper<User {
 }
 ```
 
@@ -845,10 +845,10 @@ public class SecurityApplication {
 ​添加junit依赖
 
 ```java
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-        </dependency>
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter-test</artifactId
+        </dependency
 ```
 
 ​测试mapper是否能正常使用
@@ -871,7 +871,7 @@ public class MapperTest {
 
     @Test
     public void testUserMapper(){
-        List<User> users = userMapper.selectList(null);
+        List<User users = userMapper.selectList(null);
         System.out.println(users);
     }
 }
@@ -896,7 +896,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         //从数据库查询用户信息
-        LambdaQueryWrapper<User> queryWrapper=new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<User queryWrapper=new LambdaQueryWrapper<();
         queryWrapper.eq(User::getUserName,username);
         User user=userMapper.selectOne(queryWrapper);
         //如果没有查到，就抛出异常（安全性校验）
@@ -925,7 +925,7 @@ public class LoginUser implements UserDetails {
 
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    public Collection<? extends GrantedAuthority getAuthorities() {
         return null;//暂时还没有权限信息，就先返回null就行
     }
 
@@ -1117,7 +1117,7 @@ public class LoginServiceImpl implements LoginServcie {
         LoginUser loginUser=(LoginUser) authenticate.getPrincipal();
         String userid = loginUser.getUser().getId().toString();
         String jwt=JwtUtil.createJWT(userid);
-        Map<String,String> map=new HashMap<>();
+        Map<String,String map=new HashMap<();
         map.put("token",jwt);
         //把完整的用户信息存入Redis，userid作为key
         redisCache.setCacheObject("login:"+userid,loginUser);
@@ -1263,7 +1263,7 @@ public class LoginServiceImpl implements LoginServcie {
         LoginUser loginUser=(LoginUser) authenticate.getPrincipal();
         String userid = loginUser.getUser().getId().toString();
         String jwt=JwtUtil.createJWT(userid);
-        Map<String,String> map=new HashMap<>();
+        Map<String,String map=new HashMap<();
         map.put("token",jwt);
         //把完整的用户信息存入Redis，userid作为key
         redisCache.setCacheObject("login:"+userid,loginUser);
@@ -1545,9 +1545,9 @@ public class HelloController {
 
 ① 修改UserDetails的实现类LoginUser
 
-* 添加List<String>类型的成员变量用于接收用户拥有的权限
+* 添加List<String类型的成员变量用于接收用户拥有的权限
 * 添加传入User和权限信息的有参构造
-* 重写getAuthorities()。为了只在第一次调用进行集合转换，之后的调用都用第一次的结果，那么将`List<GrantedAuthority>`对象设置为成员变量（**单例模式**）
+* 重写getAuthorities()。为了只在第一次调用进行集合转换，之后的调用都用第一次的结果，那么将`List<GrantedAuthority`对象设置为成员变量（**单例模式**）
 
 ```java
 @Data
@@ -1557,10 +1557,10 @@ public class LoginUser implements UserDetails {
     private User user;
         
     //存储权限信息
-    private List<String> permissions;
+    private List<String permissions;
     
     //传入User和权限信息的有参构造
-    public LoginUser(User user,List<String> permissions) {
+    public LoginUser(User user,List<String permissions) {
         this.user = user;
         this.permissions = permissions;
     }
@@ -1568,10 +1568,10 @@ public class LoginUser implements UserDetails {
 
     //存储SpringSecurity所需要的权限信息的集合
     @JSONField(serialize = false)//该成员变量不会被序列化到redius中
-    private List<GrantedAuthority> authorities;
+    private List<GrantedAuthority authorities;
 
     @Override
-    public  Collection<? extends GrantedAuthority> getAuthorities() {
+    public  Collection<? extends GrantedAuthority getAuthorities() {
         if(authorities!=null){
             return authorities;
         }
@@ -1627,14 +1627,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<User wrapper = new LambdaQueryWrapper<();
         wrapper.eq(User::getUserName,username);
         User user = userMapper.selectOne(wrapper);
         if(Objects.isNull(user)){
             throw new RuntimeException("用户名或密码错误");
         }
         //TODO 根据用户查询权限信息 添加到LoginUser中
-        List<String> list = new ArrayList<>(Arrays.asList("test"));//将权限信息写死方便测试
+        List<String list = new ArrayList<(Arrays.asList("test"));//将权限信息写死方便测试
         return new LoginUser(user,list);
     }
 }
@@ -1861,20 +1861,20 @@ public class Menu implements Serializable {
 先定义个mapper，其中提供一个方法可以根据userid查询权限信息
 
 ```java
-public interface MenuMapper extends BaseMapper<Menu> {
-    List<String> selectPermsByUserId(Long id);
+public interface MenuMapper extends BaseMapper<Menu {
+    List<String selectPermsByUserId(Long id);
 }
 ```
 
 创建对应的mapper映射文件，定义对应的sql语句
 
 ```xml
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.sangeng.mapper.MenuMapper">
+<?xml version="1.0" encoding="UTF-8" ?
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" 
+<mapper namespace="com.sangeng.mapper.MenuMapper"
 
 
-    <select id="selectPermsByUserId" resultType="java.lang.String">
+    <select id="selectPermsByUserId" resultType="java.lang.String"
         SELECT
             DISTINCT m.`perms`
         FROM
@@ -1886,8 +1886,8 @@ public interface MenuMapper extends BaseMapper<Menu> {
             user_id = #{userid}
             AND r.`status` = 0
             AND m.`status` = 0
-    </select>
-</mapper>
+    </select
+</mapper
 ```
 
 ​在application.yml中配置mapper映射文件的位置
@@ -1920,15 +1920,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<User wrapper = new LambdaQueryWrapper<();
         wrapper.eq(User::getUserName,username);
         User user = userMapper.selectOne(wrapper);
         if(Objects.isNull(user)){
             throw new RuntimeException("用户名或密码错误");
         }
-        List<String> permissionKeyList =  menuMapper.selectPermsByUserId(user.getId());
+        List<String permissionKeyList =  menuMapper.selectPermsByUserId(user.getId());
 //        //测试写法
-//        List<String> list = new ArrayList<>(Arrays.asList("test"));
+//        List<String list = new ArrayList<(Arrays.asList("test"));
         return new LoginUser(user,permissionKeyList);
     }
 }
@@ -2130,7 +2130,7 @@ public class SGExpressionRoot {
         //获取当前用户的权限
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-        List<String> permissions = loginUser.getPermissions();
+        List<String permissions = loginUser.getPermissions();
         //判断用户权限集合中是否存在authority
         return permissions.contains(authority);
     }

@@ -119,85 +119,85 @@ http://api.user.com/schools/grades/classes/boys?page=1&page-size=10
 ①导入相关依赖
 
 ```xml
- <dependencies>
-        <!-- servlet依赖 -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>3.1.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <!--jsp依赖 -->
-        <dependency>
-            <groupId>javax.servlet.jsp</groupId>
-            <artifactId>jsp-api</artifactId>
-            <version>2.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <!--springmvc的依赖-->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-            <version>5.3.13</version>
-        </dependency>
+ <dependencies
+        <!-- servlet依赖 --
+        <dependency
+            <groupIdjavax.servlet</groupId
+            <artifactIdjavax.servlet-api</artifactId
+            <version3.1.0</version
+            <scopeprovided</scope
+        </dependency
+        <!--jsp依赖 --
+        <dependency
+            <groupIdjavax.servlet.jsp</groupId
+            <artifactIdjsp-api</artifactId
+            <version2.1</version
+            <scopeprovided</scope
+        </dependency
+        <!--springmvc的依赖--
+        <dependency
+            <groupIdorg.springframework</groupId
+            <artifactIdspring-webmvc</artifactId
+            <version5.3.13</version
+        </dependency
 
-        <!-- jackson，帮助进行json转换-->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.9.0</version>
-        </dependency>
- </dependencies>
+        <!-- jackson，帮助进行json转换--
+        <dependency
+            <groupIdcom.fasterxml.jackson.core</groupId
+            <artifactIdjackson-databind</artifactId
+            <version2.9.0</version
+        </dependency
+ </dependencies
 ```
 
 ②配置web.xml
 
 ```xml
-	<servlet>
-        <servlet-name>DispatcherServlet</servlet-name>
-        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+	<servlet
+        <servlet-nameDispatcherServlet</servlet-name
+        <servlet-classorg.springframework.web.servlet.DispatcherServlet</servlet-class
         <!--
             为DispatcherServlet提供初始化参数的
             设置springmvc配置文件的路径
                 name是固定的，必须是contextConfigLocation
                 value指的是SpringMVC配置文件的位置
-         -->
-        <init-param>
-            <param-name>contextConfigLocation</param-name>
-            <param-value>classpath:spring-mvc.xml</param-value>
-        </init-param>
+         --
+        <init-param
+            <param-namecontextConfigLocation</param-name
+            <param-valueclasspath:spring-mvc.xml</param-value
+        </init-param
         <!--
             指定项目启动就初始化DispatcherServlet
-         -->
-        <load-on-startup>1</load-on-startup>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>DispatcherServlet</servlet-name>
+         --
+        <load-on-startup1</load-on-startup
+    </servlet
+    <servlet-mapping
+        <servlet-nameDispatcherServlet</servlet-name
         <!--
              /           表示当前servlet映射除jsp之外的所有请求（包含静态资源）
              *.do        表示.do结尾的请求路径才能被SpringMVC处理(老项目会出现)
              /*          表示当前servlet映射所有请求（包含静态资源,jsp），不应该使用其配置DispatcherServlet
-         -->
-        <url-pattern>/</url-pattern>
-    </servlet-mapping>
+         --
+        <url-pattern/</url-pattern
+    </servlet-mapping
 
 
-    <!--乱码处理过滤器，由SpringMVC提供-->
-    <!-- 处理post请求乱码 -->
-    <filter>
-        <filter-name>CharacterEncodingFilter</filter-name>
-        <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
-        <init-param>
-            <!-- name固定不变，value值根据需要设置 -->
-            <param-name>encoding</param-name>
-            <param-value>UTF-8</param-value>
-        </init-param>
-    </filter>
-    <filter-mapping>
-        <filter-name>CharacterEncodingFilter</filter-name>
-        <!-- 所有请求都设置utf-8的编码 -->
-        <url-pattern>/*</url-pattern>
-    </filter-mapping>
+    <!--乱码处理过滤器，由SpringMVC提供--
+    <!-- 处理post请求乱码 --
+    <filter
+        <filter-nameCharacterEncodingFilter</filter-name
+        <filter-classorg.springframework.web.filter.CharacterEncodingFilter</filter-class
+        <init-param
+            <!-- name固定不变，value值根据需要设置 --
+            <param-nameencoding</param-name
+            <param-valueUTF-8</param-value
+        </init-param
+    </filter
+    <filter-mapping
+        <filter-nameCharacterEncodingFilter</filter-name
+        <!-- 所有请求都设置utf-8的编码 --
+        <url-pattern/*</url-pattern
+    </filter-mapping
 ```
 
 ③配置SpringMVC
@@ -207,18 +207,18 @@ resources目录下创建mvc的配置文件**spring-mvc.xml**
 ```xml
    <!--
         SpringMVC只扫描controller包即可
-    -->
-    <context:component-scan base-package="com.sangeng.controller"/>
-    <!-- 解决静态资源访问问题，如果不加mvc:annotation-driven会导致无法访问handler-->
-    <mvc:default-servlet-handler/>
-    <!--解决响应乱码-->
-    <mvc:annotation-driven>
-        <mvc:message-converters>
-            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
-                <constructor-arg value="utf-8"/>
-            </bean>
-        </mvc:message-converters>
-    </mvc:annotation-driven>
+    --
+    <context:component-scan base-package="com.sangeng.controller"/
+    <!-- 解决静态资源访问问题，如果不加mvc:annotation-driven会导致无法访问handler--
+    <mvc:default-servlet-handler/
+    <!--解决响应乱码--
+    <mvc:annotation-driven
+        <mvc:message-converters
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter"
+                <constructor-arg value="utf-8"/
+            </bean
+        </mvc:message-converters
+    </mvc:annotation-driven
 ```
 
 
@@ -227,35 +227,35 @@ resources目录下创建mvc的配置文件**spring-mvc.xml**
 ①导入相关依赖
 
 ```xml
-<dependencies>
-        <!-- servlet依赖 -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>3.1.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <!--jsp依赖 -->
-        <dependency>
-            <groupId>javax.servlet.jsp</groupId>
-            <artifactId>jsp-api</artifactId>
-            <version>2.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <!--springmvc的依赖-->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-            <version>5.3.13</version>
-        </dependency>
+<dependencies
+        <!-- servlet依赖 --
+        <dependency
+            <groupIdjavax.servlet</groupId
+            <artifactIdjavax.servlet-api</artifactId
+            <version3.1.0</version
+            <scopeprovided</scope
+        </dependency
+        <!--jsp依赖 --
+        <dependency
+            <groupIdjavax.servlet.jsp</groupId
+            <artifactIdjsp-api</artifactId
+            <version2.1</version
+            <scopeprovided</scope
+        </dependency
+        <!--springmvc的依赖--
+        <dependency
+            <groupIdorg.springframework</groupId
+            <artifactIdspring-webmvc</artifactId
+            <version5.3.13</version
+        </dependency
 
-        <!-- jackson，帮助进行json转换-->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.9.0</version>
-        </dependency>
- </dependencies>
+        <!-- jackson，帮助进行json转换--
+        <dependency
+            <groupIdcom.fasterxml.jackson.core</groupId
+            <artifactIdjackson-databind</artifactId
+            <version2.9.0</version
+        </dependency
+ </dependencies
 ```
 
 ②配置web.xml
@@ -264,28 +264,28 @@ resources目录下创建mvc的配置文件**spring-mvc.xml**
 2. 为整个Web应用程序配置一个Spring上下文环境（也就是容器）
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?
 <web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
-         version="4.0">
-    <servlet>
-        <servlet-name>mvc</servlet-name>
-        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-        <init-param>
-            <param-name>contextConfigLocation</param-name>
-            <param-value>com.example.config.MvcConfiguration</param-value>
-        </init-param>
-        <init-param>
-            <param-name>contextClass</param-name>
-            <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
-        </init-param>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>mvc</servlet-name>
-        <url-pattern>/</url-pattern>
-    </servlet-mapping>
-</web-app>
+         version="4.0"
+    <servlet
+        <servlet-namemvc</servlet-name
+        <servlet-classorg.springframework.web.servlet.DispatcherServlet</servlet-class
+        <init-param
+            <param-namecontextConfigLocation</param-name
+            <param-valuecom.example.config.MvcConfiguration</param-value
+        </init-param
+        <init-param
+            <param-namecontextClass</param-name
+            <param-valueorg.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value
+        </init-param
+    </servlet
+    <servlet-mapping
+        <servlet-namemvc</servlet-name
+        <url-pattern/</url-pattern
+    </servlet-mapping
+</web-app
 ```
 
 因为SpringMVC是基于Spring开发的，它直接利用Spring提供的容器来实现各种功能。这里直接使用注解方式进行配置，不再使用spring-mvc.xmlX配置文件：
@@ -305,12 +305,12 @@ Spring提供了这个接口的实现类 `SpringServletContainerInitializer` , �
 ```java
 public class MainInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
     @Override
-    protected Class<?>[] getRootConfigClasses() {
+    protected Class<?[] getRootConfigClasses() {
         return new Class[]{MainConfiguration.class};   //基本的Spring配置类，一般用于业务层配置
     }
 
     @Override
-    protected Class<?>[] getServletConfigClasses() {
+    protected Class<?[] getServletConfigClasses() {
         return new Class[]{WebConfiguration.class};  //配置DispatcherServlet的配置类、主要用于Controller等配置
     }
 
@@ -374,11 +374,11 @@ DispatcherServlet里面实际有两个容器，一个web容器，一个根容器
 使用Thymeleaf作为视图解析器，导入需要的依赖：
 
 ```xml
-<dependency>
-    <groupId>org.thymeleaf</groupId>
-    <artifactId>thymeleaf-spring5</artifactId>
-    <version>3.0.12.RELEASE</version>
-</dependency>
+<dependency
+    <groupIdorg.thymeleaf</groupId
+    <artifactIdthymeleaf-spring5</artifactId
+    <version3.0.12.RELEASE</version
+</dependency
 ```
 
 在`WebConfiguration`配置类中将对应的`ViewResolver`注册为Bean
@@ -446,18 +446,18 @@ public class MainController {
 
 Thymeleaf接收传递的数据进行解析：
 ```html
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-    <script src="static/test.js"></script>
-</head>
-<body>
+<!DOCTYPE html
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+<head
+    <meta charset="UTF-8"
+    <titleTitle</title
+    <script src="static/test.js"</script
+</head
+<body
     HelloWorld！
-    <div th:text="${name}"></div>
-</body>
-</html>
+    <div th:text="${name}"</div
+</body
+</html
 ```
 
 向页面传递数据
@@ -513,18 +513,18 @@ public void addResourceHandlers(ResourceHandlerRegistry registry) {
 编写一下前端内容：
 
 ```xml
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-      <!-- 引用静态资源，这里使用Thymeleaf的网址链接表达式，Thymeleaf会自动添加web应用程序的名称到链接前面 -->
-    <script th:src="@{/static/test.js}"></script>
-</head>
-<body>
+<!DOCTYPE html
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+<head
+    <meta charset="UTF-8"
+    <titleTitle</title
+      <!-- 引用静态资源，这里使用Thymeleaf的网址链接表达式，Thymeleaf会自动添加web应用程序的名称到链接前面 --
+    <script th:src="@{/static/test.js}"</script
+</head
+<body
     HelloWorld！
-</body>
-</html>
+</body
+</html
 ```
 
 创建`test.js`并编写如下内容：
@@ -602,9 +602,9 @@ public class MainController {
 
 * 路径还支持使用通配符进行匹配
 
->* ?：表示任意一个字符，比如`@RequestMapping("/index/x?")`可以匹配/index/xa、/index/xb等等。
->* *：表示任意0-n个字符，比如`@RequestMapping("/index/*")`可以匹配/index/lbwnb、/index/yyds等。
->* **：表示当前目录或基于当前目录的多级目录，比如`@RequestMapping("/index/**")`可以匹配/index、/index/xxx等。
+* ?：表示任意一个字符，比如`@RequestMapping("/index/x?")`可以匹配/index/xa、/index/xb等等。
+* *：表示任意0-n个字符，比如`@RequestMapping("/index/*")`可以匹配/index/lbwnb、/index/yyds等。
+* **：表示当前目录或基于当前目录的多级目录，比如`@RequestMapping("/index/**")`可以匹配/index、/index/xxx等。
 
 **method属性**
 
@@ -770,7 +770,7 @@ public ModelAndView index(HttpSession session){
 
 **例一**
 
->要求定义一个RestFul风格的接口，该接口可以用来根据id查询用户。请求路径要求为/user  ，请求方式要求为GET。而请求参数id要写在请求路径上，例如：/user/1，这里的1就是id。
+要求定义一个RestFul风格的接口，该接口可以用来根据id查询用户。请求路径要求为/user  ，请求方式要求为GET。而请求参数id要写在请求路径上，例如：/user/1，这里的1就是id。
 
 ```java
 @Controller
@@ -787,7 +787,7 @@ public class UserController {
 
 **例二**
 
->定义一个RestFul风格接口，想根据id和username查询用户。请求路径要求为/user，请求方式要求为GET。请求参数id和name要写在请求路径上，例如/user/1/zs,这里的1就是id，zs是name。
+定义一个RestFul风格接口，想根据id和username查询用户。请求路径要求为/user，请求方式要求为GET。请求参数id和name要写在请求路径上，例如/user/1/zs,这里的1就是id，zs是name。
 
 ```java
 @Controller
@@ -857,17 +857,17 @@ RestFul风格的接口一些比较复杂的参数会转换成Json通过请求体
 ​SpringMVC默认会使用jackson来进行json的解析,需要导入jackson的依赖
 
 ```xml
-<!-- jackson，帮助进行json转换-->
-<dependency>
-    <groupId>com.fasterxml.jackson.core</groupId>
-    <artifactId>jackson-databind</artifactId>
-    <version>2.9.0</version>
-</dependency>
+<!-- jackson，帮助进行json转换--
+<dependency
+    <groupIdcom.fasterxml.jackson.core</groupId
+    <artifactIdjackson-databind</artifactId
+    <version2.9.0</version
+</dependency
 ```
 
 **例子**
 
->要求定义一个RestFul风格的接口，该接口可以用来新建用户。请求路径要求为/user  ，请求方式要求为POST。用户数据会转换成json通过请求体传递。
+要求定义一个RestFul风格的接口，该接口可以用来新建用户。请求路径要求为/user  ，请求方式要求为POST。用户数据会转换成json通过请求体传递。
 ​
 
 请求体数据
@@ -931,7 +931,7 @@ public class UserController {
 
 ```java
     @RequestMapping(value = "/users",method = RequestMethod.POST)
-    public String insertUsers(@RequestBody List<User> users){
+    public String insertUsers(@RequestBody List<User users){
         System.out.println("insertUsers");
         System.out.println(users);
         return "/success.jsp";
@@ -1015,23 +1015,23 @@ public ModelAndView index(@SessionAttribute(value = "test", required = false) St
 1. 导入jackson依赖
 
 ```xml
-<!-- jackson，帮助进行json转换-->
-<dependency>
-    <groupId>com.fasterxml.jackson.core</groupId>
-    <artifactId>jackson-databind</artifactId>
-    <version>2.9.0</version>
-</dependency>
+<!-- jackson，帮助进行json转换--
+<dependency
+    <groupIdcom.fasterxml.jackson.core</groupId
+    <artifactIdjackson-databind</artifactId
+    <version2.9.0</version
+</dependency
 ```
 
 2. 开启mvc的注解驱动（好像之前配过了）
 
 ```xml
-    <mvc:annotation-driven></mvc:annotation-driven>
+    <mvc:annotation-driven</mvc:annotation-driven
 ```
 
 **例一**
 
->定义个RestFul风格的接口，该接口可以用来根据id查询用户。请求路径要求为/response/user，请求方式要求为GET。请求参数id要写在请求路径上，例如/response/user/1,这里的1就是id。
+定义个RestFul风格的接口，该接口可以用来根据id查询用户。请求路径要求为/response/user，请求方式要求为GET。请求参数id要写在请求路径上，例如/response/user/1,这里的1就是id。
 要求获取参数id,去查询对应id的用户信息（模拟查询即可，可以选择直接new一个User对象），并且转换成json响应到响应体中。
 
 ```java
@@ -1049,7 +1049,7 @@ public class ResponseController {
 
 **例二**
 
->定义个RestFul风格的接口，该接口可以查询所有用户。请求路径要求为/response/user，请求方式要求为GET。
+定义个RestFul风格的接口，该接口可以查询所有用户。请求路径要求为/response/user，请求方式要求为GET。
 去查询所有的用户信息（模拟查询即可，可以选择直接创建集合，添加几个User对象），并且转换成json响应到响应体中。
 
 ```java
@@ -1065,8 +1065,8 @@ public class ResponseController {
     }
 
     @GetMapping("/user")
-    public List<User> testResponse2(){
-        List<User> list = new ArrayList<User>();
+    public List<User testResponse2(){
+        List<User list = new ArrayList<User();
         list.add(new User(1,"三更",15,null));
         list.add(new User(2,"四更",16,null));
         list.add(new User(3,"五更",17,null));
@@ -1147,7 +1147,7 @@ public String home(){
 
 用Model来往域中存数据(键值对的形式)，然后实现页面跳转。
 
->​要求访问/testRequestScope这个路径时能往Request域中存name和title数据，然后跳转到/WEB-INF/page/testScope.jsp这个页面。在Jsp中获取域中的数据。
+​要求访问/testRequestScope这个路径时能往Request域中存name和title数据，然后跳转到/WEB-INF/page/testScope.jsp这个页面。在Jsp中获取域中的数据。
 
 ```java
 @Controller
@@ -1165,10 +1165,10 @@ public class JspController {
 对应的testScope.jsp页面(thymeleaf也行，代码不一样而已)
 
 ```jsp
-<body>
+<body
     ${requestScope.get("name")}
     ${requestScope.get("title")}
-</body>
+</body
 ```
 
 **使用ModelAndView**
@@ -1177,7 +1177,7 @@ public class JspController {
 
 *注意要把modelAndView对象作为方法的返回值返回*
 
->要求访问/testRequestScope2这个路径时能往域中存name和title数据，然后跳转到/WEB-INF/page/testScope.jsp这个页面。在Jsp中获取域中的数据。
+要求访问/testRequestScope2这个路径时能往域中存name和title数据，然后跳转到/WEB-INF/page/testScope.jsp这个页面。在Jsp中获取域中的数据。
 
 ```java
 @Controller
@@ -1219,7 +1219,7 @@ public class JspController {
 
 **例子**
 
->要求访问/testSessionScope这个路径时能往域中存name和title数据，然后跳转到/WEB-INF/page/testScope.jsp这个页面。在jsp中获取Session域中的数据。
+要求访问/testSessionScope这个路径时能往域中存name和title数据，然后跳转到/WEB-INF/page/testScope.jsp这个页面。在jsp中获取Session域中的数据。
 
 ```java
 @Controller
@@ -1240,10 +1240,10 @@ public class JspController {
 只能获取到name，获取不到title
 
 ```jsp
-<body>
+<body
     ${sessionScope.get("name")}
     ${sessionScope.get("title")}
-</body>
+</body
 ```
 
 #### 获取Session域中数据
@@ -1322,9 +1322,9 @@ public class MyInterceptor implements HandlerInterceptor {
 ③spring-mvc.xml中配置拦截器
 
 ```xml
-    <!--配置拦截器-->
-    <mvc:interceptors>
-        <mvc:interceptor>
+    <!--配置拦截器--
+    <mvc:interceptors
+        <mvc:interceptor
             <!--
                     配置拦截器要拦截的路径
                     /*    代表当前一级路径，不包含子路径
@@ -1334,14 +1334,14 @@ public class MyInterceptor implements HandlerInterceptor {
                         /test/*   这种会拦截下面这种路径/test/add  /test/delete
                                   但是拦截不了多级路径的情况例如  /test/add/abc  /test/add/abc/bcd
                         /test/**  这种可以拦截多级目录的情况，无论    /test/add还是/test/add/abc/bcd 都可以拦截
-            -->
-            <mvc:mapping path="/**"/>
-            <!--配置排除拦截的路径-->
-            <!--<mvc:exclude-mapping path="/"/>-->
-            <!--配置拦截器对象注入容器-->
-            <bean class="com.sangeng.interceptor.MyInterceptor"></bean>
-        </mvc:interceptor>
-    </mvc:interceptors>
+            --
+            <mvc:mapping path="/**"/
+            <!--配置排除拦截的路径--
+            <!--<mvc:exclude-mapping path="/"/--
+            <!--配置拦截器对象注入容器--
+            <bean class="com.sangeng.interceptor.MyInterceptor"</bean
+        </mvc:interceptor
+    </mvc:interceptors
 ```
 
 如果是纯注解开发：
@@ -1456,20 +1456,20 @@ public void addInterceptors(InterceptorRegistry registry) {
 ①编写登录页面
 
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    <form method="post" action="/login">
-        用户名：<input type="text" name="username">
-        密码：<input type="password" name="password">
-        <input type="submit">
-    </form>
-</body>
-</html>
+<!DOCTYPE html
+<html lang="en"
+<head
+    <meta charset="UTF-8"
+    <titleTitle</title
+</head
+<body
+    <form method="post" action="/login"
+        用户名：<input type="text" name="username"
+        密码：<input type="password" name="password"
+        <input type="submit"
+    </form
+</body
+</html
 ```
 
 ②编写登录接口
@@ -1526,17 +1526,17 @@ public class LoginInterceptor implements HandlerInterceptor {
 - ​	静态资源不拦截
 
 ```xml
-    <mvc:interceptors>
-        <mvc:interceptor>
-            <!--要拦截的路径-->
-            <mvc:mapping path="/**"/>
-            <!--排除不拦截的路径-->
-            <mvc:exclude-mapping path="/static/**"></mvc:exclude-mapping>
-            <mvc:exclude-mapping path="/WEB-INF/page/**"></mvc:exclude-mapping>
-            <mvc:exclude-mapping path="/login"></mvc:exclude-mapping>
-            <bean class="com.sangeng.interceptor.LoginInterceptor"></bean>
-        </mvc:interceptor>
-    </mvc:interceptors>
+    <mvc:interceptors
+        <mvc:interceptor
+            <!--要拦截的路径--
+            <mvc:mapping path="/**"/
+            <!--排除不拦截的路径--
+            <mvc:exclude-mapping path="/static/**"</mvc:exclude-mapping
+            <mvc:exclude-mapping path="/WEB-INF/page/**"</mvc:exclude-mapping
+            <mvc:exclude-mapping path="/login"</mvc:exclude-mapping
+            <bean class="com.sangeng.interceptor.LoginInterceptor"</bean
+        </mvc:interceptor
+    </mvc:interceptors
 ```
 
 ### 多拦截器执行顺序
@@ -1591,17 +1591,17 @@ public class ErrorController {
 编写一个专门显示异常的页面500.html：
 
 ```java
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!DOCTYPE html
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+<head
+    <meta charset="UTF-8"
+    <titleTitle</title
+</head
+<body
 500 - 服务器出现了一个内部错误QAQ
-<div th:text="${e}"></div>
-</body>
-</html>
+<div th:text="${e}"</div
+</body
+</html
 ```
 
 控制器制造个异常来看看成果
@@ -1618,7 +1618,7 @@ public String index(){
 访问后，控制台会输出异常信息，同时页面也是刚刚自定义的一个页面。
 页面内容：
 
->500 - 服务器出现了一个内部错误QAQ
+500 - 服务器出现了一个内部错误QAQ
 java.lang.RuntimeException: 您的氪金力度不足，无法访问！
 
 **例二（前后端分离的项目：把异常信息封装为对象，转换成json写入响应体）**
@@ -1697,11 +1697,11 @@ JSON.stringify(obj)
 JSON解析框架有很多种，比较常用的是Jackson和FastJSON，这里使用阿里巴巴的FastJSON
 
 ```xml
-<dependency>
-    <groupId>com.alibaba</groupId>
-    <artifactId>fastjson</artifactId>
-    <version>1.2.78</version>
-</dependency>
+<dependency
+    <groupIdcom.alibaba</groupId
+    <artifactIdfastjson</artifactId
+    <version1.2.78</version
+</dependency
 ```
 
 **`JSONObject`**
@@ -1788,7 +1788,7 @@ public Student data(){
 
 ```java
 @Override
-public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+public void configureMessageConverters(List<HttpMessageConverter<? converters) {
     converters.add(new FastJsonHttpMessageConverter());
 }
 ```
@@ -1804,28 +1804,28 @@ Ajax即**A**synchronous **J**avascript **A**nd **X**ML（异步JavaScript和XML�
 它在JQuery框架中有实现，因此直接导入JQuery（JQuery极大地简化了JS的开发，封装了很多内容，可以了解一下）：
 
 ```html
-<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"</script
 ```
 
 接着就可以直接使用了，首先修改一下前端页面：
 
 ```html
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-    <script th:src="@{/static/test.js}"></script>
-</head>
-<body>
+<!DOCTYPE html
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+<head
+    <meta charset="UTF-8"
+    <titleTitle</title
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"</script
+    <script th:src="@{/static/test.js}"</script
+</head
+<body
     你好，
-    <span id="username"></span>
+    <span id="username"</span
     您的年龄是：
-    <span id="age"></span>
-    <button onclick="updateData()">点我更新页面数据</button>
-</body>
-</html>
+    <span id="age"</span
+    <button onclick="updateData()"点我更新页面数据</button
+</body
+</html
 ```
 
 **从服务端获取数据并更新到页面中**
@@ -1921,12 +1921,12 @@ public CommonsMultipartResolver commonsMultipartResolver(){
 SpringMVC使用commons-fileupload的包对文件上传进行了封装，使用`CommonsMultipartFile`对象来接收用户上传的文件。它是基于Apache的Commons-fileupload框架实现的，需要导入一个依赖：
 
 ```xml
-<!--commons文件上传，如果需要文件上传功能，需要添加本依赖-->
-<dependency>
-    <groupId>commons-fileupload</groupId>
-    <artifactId>commons-fileupload</artifactId>
-    <version>1.4</version>
-</dependency>
+<!--commons文件上传，如果需要文件上传功能，需要添加本依赖--
+<dependency
+    <groupIdcommons-fileupload</groupId
+    <artifactIdcommons-fileupload</artifactId
+    <version1.4</version
+</dependency
 ```
 
 ### 上传文件
@@ -1941,20 +1941,20 @@ SpringMVC使用commons-fileupload的包对文件上传进行了封装，使用`C
 ​综上，一个上传文件表单的结构如下：
 
 ```html
-    <form action="/upload" method="post" enctype="multipart/form-data">
+    <form action="/upload" method="post" enctype="multipart/form-data"
 
-    </form>
+    </form
 ```
 
 针对这个例子，表单设计如下：
 
 ```html
-<div>
-    <form action="upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit">
-    </form>
-</div>
+<div
+    <form action="upload" method="post" enctype="multipart/form-data"
+        <input type="file" name="file"
+        <input type="submit"
+    </form
+</div
 ```
 
 **直接编写Controller**
@@ -2017,7 +2017,7 @@ public void download(HttpServletResponse response){
 在前端页面中添加一个下载点：
 
 ```html
-<a href="download" download="test.html">下载最新资源</a>
+<a href="download" download="test.html"下载最新资源</a
 ```
 
 **法二：使用封装的下载工具类实现文件下载**
@@ -2070,7 +2070,7 @@ public class DownLoadController {
 
 前端下载点
 
-<a href="/download">下载最新资源</a>
+<a href="/download"下载最新资源</a
 
 ## SpringMVC执行流程-JSP模式
 

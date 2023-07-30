@@ -2,7 +2,7 @@
 
 官网：https://spring.io/projects/spring-boot
 
-> Spring Boot可以轻松创建独立的、基于Spring的生产级应用程序，它可以让你“运行即可”。大多数Spring Boot应用程序只需要少量的Spring配置。
+ Spring Boot可以轻松创建独立的、基于Spring的生产级应用程序，它可以让你“运行即可”。大多数Spring Boot应用程序只需要少量的Spring配置。
 
 在SSM阶段，当需要搭建一个基于Spring全家桶的Web应用程序时，不得不做大量的依赖导入和框架整合相关的Bean定义，光是整合框架就花费了大量的时间。
 
@@ -19,9 +19,9 @@ SpringBoot功能：
 - 提供生产就绪功能，如指标、运行状况检查和外部化配置
 - 没有代码生成，也没有XML配置的要求
 
-## SpringBoot两大特性
+# SpringBoot两大特性
 
-### 起步依赖
+## 起步依赖
 
 **依赖冲突**
 
@@ -53,7 +53,7 @@ SpringBoot模块都需要继承一个父工*spring-boot-starter-parent*。在spr
 - 非官方starter则是以 `场景名-spring-boot-starter`的格式，例如：mybatis-spring-boot-starter
 
 
-### 自动配置
+## 自动配置
 
 **概念**
 
@@ -67,40 +67,40 @@ Springboot遵循“**约定优于配置**”的原则，自动进行了默认配
 
 等到看源码的时候再说
 
-## 前置——检查环境
+# 前置——检查环境
 
 Jdk：8
-Maven：3.5以上（“文件->设置->Maven”查看）
+Maven：3.5以上（“文件-设置-Maven”查看）
 SpringBoot：2.5以上，3.0以下
 
-**注意**：如果maven无法解析依赖项，外部库总是导不入maven的jar包，则需打开maven的setting.xml文件（右击pom.xml->maven->打开setting.xml）添加以下内容：
+**注意**：如果maven无法解析依赖项，外部库总是导不入maven的jar包，则需打开maven的setting.xml文件（右击pom.xml-maven-打开setting.xml）添加以下内容：
 
 ```xml
-<mirrors>
-        <mirror>
-            <id>aliyunmaven</id>
-            <mirrorOf>central</mirrorOf>
-            <name>aliyun maven</name>
-            <url>https://maven.aliyun.com/repository/public </url>
-        </mirror>
-    </mirrors>
-    <profiles>
-        <profile>
-            <id>jdk-1.8</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-                <jdk>1.8</jdk>
-            </activation>
-            <properties>
-                <maven.compiler.source>1.8</maven.compiler.source>
-                <maven.compiler.target>1.8</maven.compiler.target>
-                <maven.compiler.compilerVersion>1.8</maven.compiler.compilerVersion>
-            </properties>
-        </profile>
-    </profiles>
+<mirrors
+        <mirror
+            <idaliyunmaven</id
+            <mirrorOfcentral</mirrorOf
+            <namealiyun maven</name
+            <urlhttps://maven.aliyun.com/repository/public </url
+        </mirror
+    </mirrors
+    <profiles
+        <profile
+            <idjdk-1.8</id
+            <activation
+                <activeByDefaulttrue</activeByDefault
+                <jdk1.8</jdk
+            </activation
+            <properties
+                <maven.compiler.source1.8</maven.compiler.source
+                <maven.compiler.target1.8</maven.compiler.target
+                <maven.compiler.compilerVersion1.8</maven.compiler.compilerVersion
+            </properties
+        </profile
+    </profiles
 ```
 
-## SpringBoot项目文件结构（啥都不勾选）
+# SpringBoot项目文件结构（啥都不勾选）
 
 **自带一个SpringBoot启动类**
 
@@ -136,50 +136,50 @@ class SpringBootTestApplicationTests {
 **pom.xml文件**
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-  	<!--  继承父工程  -->
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.2</version>
-        <relativePath/> <!-- lookup parent from repository -->
-    </parent>
-    <groupId>com.example</groupId>
-    <artifactId>springboot-study</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>SpringBootTest</name>
-    <description>SpringBootTest</description>
-    <properties>
-        <java.version>1.8</java.version>
-    </properties>
-    <dependencies>
-        <!--  spring-boot-starter SpringBoot核心启动器  -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <!--  spring-boot-starter-test SpringBoot测试模块启动器  -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+    <modelVersion4.0.0</modelVersion
+  	<!--  继承父工程  --
+    <parent
+        <groupIdorg.springframework.boot</groupId
+        <artifactIdspring-boot-starter-parent</artifactId
+        <version2.6.2</version
+        <relativePath/ <!-- lookup parent from repository --
+    </parent
+    <groupIdcom.example</groupId
+    <artifactIdspringboot-study</artifactId
+    <version0.0.1-SNAPSHOT</version
+    <nameSpringBootTest</name
+    <descriptionSpringBootTest</description
+    <properties
+        <java.version1.8</java.version
+    </properties
+    <dependencies
+        <!--  spring-boot-starter SpringBoot核心启动器  --
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter</artifactId
+        </dependency
+        <!--  spring-boot-starter-test SpringBoot测试模块启动器  --
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter-test</artifactId
+            <scopetest</scope
+        </dependency
+    </dependencies
 
-    <build>
-        <plugins>
-            <!--  SpringBoot Maven插件，打包Jar都不用你操心了   -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+    <build
+        <plugins
+            <!--  SpringBoot Maven插件，打包Jar都不用你操心了   --
+            <plugin
+                <groupIdorg.springframework.boot</groupId
+                <artifactIdspring-boot-maven-plugin</artifactId
+            </plugin
+        </plugins
+    </build
 
-</project>
+</project
 ```
 
 **除了以上这些文件以外，项目目录下还有**
@@ -187,7 +187,7 @@ class SpringBootTestApplicationTests {
 * .gitignore  -  Git忽略名单
 * application.properties   -    SpringBoot的配置文件，所有依赖的配置都在这里编写，但是一般情况下只需要配置必要项即可。
 
-## SpringBoot的配置文件
+# SpringBoot的配置文件
 
 `application.properties`是整个SpringBoot的配置文件，除了使用`properties`格式以外，还有一种叫做`yaml`格式，SringBoot支持该格式
 
@@ -196,14 +196,14 @@ YML和properties格式的相互转换：https://www.toyaml.com/index.html
 想要在编写配置文件的时候有相应的提示，可以添加以下依赖
 
 ```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-configuration-processor</artifactId>
-    <optional>true</optional>
-</dependency>
+<dependency
+    <groupIdorg.springframework.boot</groupId
+    <artifactIdspring-boot-configuration-processor</artifactId
+    <optionaltrue</optional
+</dependency
 ```
 
-### yml基本语法
+## yml基本语法
 
 **什么是YML（或YMAL）**
 
@@ -222,10 +222,10 @@ student:
 在xml里这样表示
 
 ```xml
-<student>
-    <name>sangeng</name>
-    <age>15</age>
-</student>
+<student
+    <namesangeng</name
+    <age15</age
+</student
 ```
 
 **约定**
@@ -335,9 +335,9 @@ server:
 myPort: 80   
 ```
 
-### SpringBoot读取配置文件
+## SpringBoot读取配置文件
 
-#### `@Value`注入配置文件的值
+## `@Value`注入配置文件的值
 
 *注意：加了@Value的类必须是交由Spring容器管理的*
 
@@ -360,7 +360,7 @@ public class MainController {
     int data;
 ```
 
-#### `@ConfigurationProperties`注入
+## `@ConfigurationProperties`注入
 
 *注意：对应的属性要有set/get方法，并且key要和成员变量名一致才可以对应上*
 
@@ -407,9 +407,9 @@ public class TestController {
 }
 ```
 
-## Web开发
+# Web开发
 
-### 整合Web相关框架
+## 整合Web相关框架
 
 SpringBoot会内嵌一个Tomcat服务器，也就是当Jar打包后，相当于就是一个可以直接运行的应用程序
 
@@ -418,10 +418,10 @@ SpringBoot会内嵌一个Tomcat服务器，也就是当Jar打包后，相当于�
 只需导入web的starter（可以看到它包含了tomcat，json,SpringMVC等依赖）【也可以在创建项目的时候勾选“Spring Web”】
 
 ```xml
-<dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-</dependency>
+<dependency
+        <groupIdorg.springframework.boot</groupId
+        <artifactIdspring-boot-starter-web</artifactId
+</dependency
 ```
 
 **它是真的快**
@@ -491,15 +491,15 @@ public Student student(){
 
 最后浏览器能够直接得到`application/json`的响应数据
 
-### 整合SpringSecurity依赖
+## 整合SpringSecurity依赖
 
 只需要导入SpringSecurity的Starter依赖即可：
 
 ```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-security</artifactId>
-</dependency>
+<dependency
+    <groupIdorg.springframework.boot</groupId
+    <artifactIdspring-boot-starter-security</artifactId
+</dependency
 ```
 
 SpringSecurity会自动生成一个默认用户`user`，它的密码会出现在日志中：
@@ -552,21 +552,21 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
 使用了SpringBoot之后，需要什么功能，只需要导入对应的starter依赖即可，甚至都不需要去进行额外的配置，只需要关注依赖本身的必要设置即可。
 
-### 整合junit
+## 整合junit
 
 使用SpringBoot整合Junit进行单元测试。
 
 Spring Boot 2.2.0 版本开始引入 JUnit 5 作为单元测试默认库
 
-#### 整合流程
+## 整合流程
 
 ①添加依赖
 
 ```xml
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-        </dependency>
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter-test</artifactId
+        </dependency
 ```
 
 ②编写测试类
@@ -616,7 +616,7 @@ public class ApplicationTest {
 }
 ```
 
-#### 兼容老版本
+## 兼容老版本
 
 由于Junit5和之前的Junit4有比较大的不同，如果对老项目中的SpringBoot进行了版本升级，那之前的单元测试代码会出现一些问题
 
@@ -637,11 +637,11 @@ public class ApplicationTest {
 添加依赖vintage来进行兼容。
 
 ```xml
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
+        <dependency
+            <groupIdorg.junit.vintage</groupId
+            <artifactIdjunit-vintage-engine</artifactId
+            <scopetest</scope
+        </dependency
 ```
 
 *注意：org.junit.Test对应的是Junit4的版本，就搭配@RunWith注解来使用*
@@ -673,7 +673,7 @@ public class ApplicationTest {
 }
 ```
 
-### 整合Mybatis框架
+## 整合Mybatis框架
 
 **先准备用于测试的数据**
 
@@ -725,19 +725,19 @@ public class User {
 具体用哪个版本的Mybatis要看配置: https://github.com/mybatis/spring-boot-starter/
 
 ```xml
-<!--mybatis启动器-->
-<dependency>
-    <groupId>org.mybatis.spring.boot</groupId>
-    <artifactId>mybatis-spring-boot-starter</artifactId>
-    <version>2.2.0</version>
-</dependency>
-        <!--mysql驱动-->
-<dependency>
-    <groupId>mysql</groupId>
-    <artifactId>mysql-connector-java</artifactId>
-    <version>8.0.27</version>
-    <scope>runtime</scope>
-</dependency>
+<!--mybatis启动器--
+<dependency
+    <groupIdorg.mybatis.spring.boot</groupId
+    <artifactIdmybatis-spring-boot-starter</artifactId
+    <version2.2.0</version
+</dependency
+        <!--mysql驱动--
+<dependency
+    <groupIdmysql</groupId
+    <artifactIdmysql-connector-java</artifactId
+    <version8.0.27</version
+    <scoperuntime</scope
+</dependency
 ```
 
 **②配置`application.yml`文件**
@@ -765,15 +765,15 @@ mybatis:
 
 **④编写mapper接口对应的xml文件**
 
-### 整合Thymeleaf框架
+## 整合Thymeleaf框架
 
 整合Thymeleaf也只需导入对应的starter：
 
 ```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-thymeleaf</artifactId>
-</dependency>
+<dependency
+    <groupIdorg.springframework.boot</groupId
+    <artifactIdspring-boot-starter-thymeleaf</artifactId
+</dependency
 ```
 
 定义Controller
@@ -790,7 +790,7 @@ public class ThymeleafController {
     @RequestMapping("/thymeleaf/users")
     public String users(Model model){
         //获取数据
-        List<User> users = userServcie.findAll();
+        List<User users = userServcie.findAll();
         //望域中存入数据
         model.addAttribute("users",users);
         model.addAttribute("msg","hello thymeleaf");
@@ -817,19 +817,19 @@ spring:
    @{/app/css/bootstrap.css}就是引入resource/static/app/css/bootstrap.css
 
 ```html
-   <link rel="stylesheet" th:href="@{/app/css/bootstrap.css}">
-   <!-- Vendor CSS-->
-   <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/font-awesome.min.css}">
-   <link rel="stylesheet" th:href="@{/vendor/animo/animate+animo.css}">
-   <link rel="stylesheet" th:href="@{/vendor/csspinner/csspinner.min.css}">
-   <!-- START Page Custom CSS-->
-   <!-- END Page Custom CSS-->
-   <!-- App CSS-->
-   <link rel="stylesheet" th:href="@{/app/css/app.css}">
-   <!-- Modernizr JS Script-->
-   <script th:src="@{/vendor/modernizr/modernizr.js}" type="application/javascript"></script>
-   <!-- FastClick for mobiles-->
-   <script th:src="@{/vendor/fastclick/fastclick.js}" type="application/javascript"></script>
+   <link rel="stylesheet" th:href="@{/app/css/bootstrap.css}"
+   <!-- Vendor CSS--
+   <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/font-awesome.min.css}"
+   <link rel="stylesheet" th:href="@{/vendor/animo/animate+animo.css}"
+   <link rel="stylesheet" th:href="@{/vendor/csspinner/csspinner.min.css}"
+   <!-- START Page Custom CSS--
+   <!-- END Page Custom CSS--
+   <!-- App CSS--
+   <link rel="stylesheet" th:href="@{/app/css/app.css}"
+   <!-- Modernizr JS Script--
+   <script th:src="@{/vendor/modernizr/modernizr.js}" type="application/javascript"</script
+   <!-- FastClick for mobiles--
+   <script th:src="@{/vendor/fastclick/fastclick.js}" type="application/javascript"</script
 ```
 
 **简单使用Thymeleaf**
@@ -838,15 +838,15 @@ spring:
 
 ```xml
 <html lang="en" xmlns:th=http://www.thymeleaf.org
-xmlns:sec=http://www.thymeleaf.org/extras/spring-security>
+xmlns:sec=http://www.thymeleaf.org/extras/spring-security
 ```
 
 获取域中的name属性的值可以使用： ${name},注意要在th开头的属性中使用
 
 ```html
-<html lang="en" class="no-ie" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" class="no-ie" xmlns:th="http://www.thymeleaf.org"
  .....
- <div class="panel-heading" th:text="${msg}">Kitchen Sink</div>
+ <div class="panel-heading" th:text="${msg}"Kitchen Sink</div
 ```
 
 遍历语法：
@@ -854,15 +854,15 @@ xmlns:sec=http://www.thymeleaf.org/extras/spring-security>
 th:each="自定义的元素变量名称 : ${集合变量名称}" 
 
 ```html
-<tr th:each="user:${users}">
-    <td th:text="${user.id}"></td>
-    <td th:text="${user.username}"></td>
-    <td th:text="${user.age}"></td>
-    <td th:text="${user.address}"></td>
-</tr>
+<tr th:each="user:${users}"
+    <td th:text="${user.id}"</td
+    <td th:text="${user.username}"</td
+    <td th:text="${user.age}"</td
+    <td th:text="${user.address}"</td
+</tr
 ```
 
-### 访问静态资源
+## 访问静态资源
 
 ​由于SpringBoot的项目是打成jar包的，所以没有之前web项目的那些web资源目录(webapps)。
 
@@ -908,7 +908,7 @@ spring:
         - classpath:/static/
 ```
 
-### 响应格式统一
+## 响应格式统一
 
 要保证一个项目中所有接口返回的数据格式的统一。这样无论是前端还是移动端开发获取到我们的数据后都能更方便的进行统一处理。
 
@@ -920,7 +920,7 @@ com.sangeng.common.ResponseResult
 @JsonInclude(JsonInclude.Include.NON_NULL)//某个属性不为null，才会把它格式化转换成json
 @Data
 @NoArgsConstructor
-public class ResponseResult<T> {
+public class ResponseResult<T {
     /**
      * 状态码
      */
@@ -952,7 +952,7 @@ public class ResponseResult<T> {
 }
 ```
 
-### 跨域请求
+## 跨域请求
 
 **什么是跨域**
 
@@ -966,7 +966,7 @@ public class ResponseResult<T> {
 
 **SpringBoot使用CORS解决跨域的两种方法**
 
->两种方法本质上没区别：都是把`WebMvcConfigurer`的实现类注入到容器中，并且重写`addCorsMappings`方法
+两种方法本质上没区别：都是把`WebMvcConfigurer`的实现类注入到容器中，并且重写`addCorsMappings`方法
 实际开发中方法二更加常用
 
 *方式一：使用@CrossOrigin*
@@ -985,7 +985,7 @@ public class UserController {
     @RequestMapping("/findAll")
     public ResponseResult findAll(){
         //调用service查询数据 ，进行返回
-        List<User> users = userServcie.findAll();
+        List<User users = userServcie.findAll();
 
         return new ResponseResult(200,users);
     }
@@ -1018,9 +1018,9 @@ public class CorsConfig implements WebMvcConfigurer {
 
 **原理**：
 
-### `@ControllerAdvice`统一异常处理（和SpringMVC一样）
+## `@ControllerAdvice`统一异常处理（和SpringMVC一样）
 
->这一部分和SpringMVC的一样，那里更详细
+这一部分和SpringMVC的一样，那里更详细
 
 前后端分离的项目中，异常处理一般是把异常信息封装到Json中写入响应体。无论是哪种情况
 
@@ -1048,7 +1048,7 @@ public class MyControllerAdvice {
 }
 ```
 
-### 获取web原生对象（了解）
+## 获取web原生对象（了解）
 
 在web阶段经常要使用到request，response，session等对象。
 
@@ -1072,7 +1072,7 @@ public class TestController {
 }
 ```
 
-### 自定义参数解析
+## 自定义参数解析
 
 如果想实现像获取请求体中的数据那样(在Handler方法的参数上增加一个@RepuestBody注解就可以获取到对应的数据),就可以使用HandlerMethodArgumentResolver来实现自定义的参数解析。
 
@@ -1126,7 +1126,7 @@ public class ArgumentResolverConfig implements WebMvcConfigurer {
     private UserIdArgumentResolver userIdArgumentResolver;
 
     @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver resolvers) {
         resolvers.add(userIdArgumentResolver);
     }
 }
@@ -1149,14 +1149,14 @@ public class UserController {
     public ResponseResult findAll(@CurrentUserId String userId) throws Exception {
         System.out.println(userId);
         //调用service查询数据 ，进行返回s
-        List<User> users = userServcie.findAll();
+        List<User users = userServcie.findAll();
 
         return new ResponseResult(200,users);
     }
 }
 ```
 
-### 开启声明式事务
+## 开启声明式事务
 
 直接在需要事务控制的方法上加上对应的注解`@Transactional`
 
@@ -1168,7 +1168,7 @@ public class UserServiceImpl implements UserServcie {
     private UserMapper userMapper;
 
     @Override
-    public List<User> findAll() {
+    public List<User findAll() {
         return userMapper.findAll();
     }
 
@@ -1185,7 +1185,7 @@ public class UserServiceImpl implements UserServcie {
 }
 ```
 
-### AOP
+## AOP
 
 SpringBoot中默认是开启AOP功能的。如果不想开启AOP功能可以使用如下配置设置为false
 
@@ -1195,15 +1195,15 @@ spring:
     auto: false
 ```
 
-#### 使用步骤
+## 使用步骤
 
 ①添加依赖
 
 ```xml
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
+        <dependency
+            <groupIdorg.springframework.boot</groupId
+            <artifactIdspring-boot-starter-aop</artifactId
+        </dependency
 ```
 
 ②自定义注解
@@ -1259,13 +1259,13 @@ public class UserServiceImpl implements UserServcie {
 
     @Override
     @InvokeLog  //需要被增强方法需要加上对应的注解
-    public List<User> findAll() {
+    public List<User findAll() {
         return userMapper.findAll();
     }
 }
 ```
 
-#### 切换动态代理
+## 切换动态代理
 
 有的时候我们需要修改AOP的代理方式。
 
@@ -1291,11 +1291,11 @@ public class WebApplication {
 }
 ```
 
-## 日志系统
+# 日志系统
 
 SpringBoot提供了丰富的日志系统，它几乎是开箱即用的。
 
-### 开启日志
+## 开启日志
 
 开启日志
 
@@ -1306,9 +1306,9 @@ logging:
     com.sangeng: debug #设置日志级别
 ```
 
-### 花里胡哨
+## 花里胡哨
 
-#### 日志门面和日志实现
+## 日志门面和日志实现
 
 首先要区分一下，什么是日志门面（Facade）什么是日志实现。
 
@@ -1334,15 +1334,15 @@ logging:
 * 导入对应日志框架的Slf4j中间包
 * 导入自己官方指定的日志实现，并作为Slf4j的日志实现层
 
-#### 在SpringBoot中打印日志信息
+## 在SpringBoot中打印日志信息
 
 SpringBoot使用的是Slf4j作为日志门面，Logback（[Logback](http://logback.qos.ch/) 是log4j 框架的作者开发的新一代日志框架，它效率更高、能够适应诸多的运行环境，同时天然支持SLF4J）作为日志实现，对应的依赖为：
 
 ```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-logging</artifactId>
-</dependency>
+<dependency
+    <groupIdorg.springframework.boot</groupId
+    <artifactIdspring-boot-starter-logging</artifactId
+</dependency
 ```
 
 如果需要打印日志，可以像这样：
@@ -1372,17 +1372,17 @@ public class MainController {
 
 日志级别从低到高分为TRACE < DEBUG < INFO < WARN < ERROR < FATAL，SpringBoot默认只会打印INFO以上级别的信息。
 
-#### 配置Logback日志
+## 配置Logback日志
 
 Logback官网：https://logback.qos.ch
 
 和JUL一样，Logback也能通过编写对应的配置文件实现定制化。SpringBoot推荐将配置文件名称命名为`logback-spring.xml`表示这是SpringBoot下Logback专用的配置，可以使用SpringBoot 的高级Profile功能，它的内容类似于这样：
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <!-- 配置 -->
-</configuration>
+<?xml version="1.0" encoding="UTF-8"?
+<configuration
+    <!-- 配置 --
+</configuration
 ```
 
 最外层由`configuration`包裹，一旦编写，那么就会替换默认的配置。所以如果内部什么都不写的话，那么会导致我们的SpringBoot项目没有配置任何日志输出方式，控制台也不会打印日志。
@@ -1392,25 +1392,25 @@ Logback官网：https://logback.qos.ch
 直接导入并使用SpringBoot预设好的日志格式：`org/springframework/boot/logging/logback/defaults.xml`，然后设置对应的`appender`即可：
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <!--  导入其他配置文件，作为预设  -->
-    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+<?xml version="1.0" encoding="UTF-8"?
+<configuration
+    <!--  导入其他配置文件，作为预设  --
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" /
 
-    <!--  Appender作为日志打印器配置，这里命名随意  -->
-    <!--  ch.qos.logback.core.ConsoleAppender是专用于控制台的Appender  -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
-            <charset>${CONSOLE_LOG_CHARSET}</charset>
-        </encoder>
-    </appender>
+    <!--  Appender作为日志打印器配置，这里命名随意  --
+    <!--  ch.qos.logback.core.ConsoleAppender是专用于控制台的Appender  --
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender"
+        <encoder
+            <pattern${CONSOLE_LOG_PATTERN}</pattern
+            <charset${CONSOLE_LOG_CHARSET}</charset
+        </encoder
+    </appender
 
-    <!--  指定日志输出级别，以及启用的Appender，这里就使用了我们上面的ConsoleAppender  -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-    </root>
-</configuration>
+    <!--  指定日志输出级别，以及启用的Appender，这里就使用了我们上面的ConsoleAppender  --
+    <root level="INFO"
+        <appender-ref ref="CONSOLE"/
+    </root
+</configuration
 ```
 
 配置完成后，控制台已经可以正常打印日志信息了。
@@ -1420,30 +1420,30 @@ Logback官网：https://logback.qos.ch
 只需要再配置一个对应的Appender即可：
 
 ```xml
-<!--  ch.qos.logback.core.rolling.RollingFileAppender用于文件日志记录，它支持滚动  -->
-<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <encoder>
-        <pattern>${FILE_LOG_PATTERN}</pattern>
-        <charset>${FILE_LOG_CHARSET}</charset>
-    </encoder>
-    <!--  自定义滚动策略，防止日志文件无限变大，也就是日志文件写到什么时候为止，重新创建一个新的日志文件开始写  -->
-    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-        <!--  文件保存位置以及文件命名规则，这里用到了%d{yyyy-MM-dd}表示当前日期，%i表示这一天的第N个日志  -->
-        <FileNamePattern>log/%d{yyyy-MM-dd}-spring-%i.log</FileNamePattern>
-        <!--  到期自动清理日志文件  -->
-        <cleanHistoryOnStart>true</cleanHistoryOnStart>
-        <!--  最大日志保留时间  -->
-        <maxHistory>7</maxHistory>
-        <!--  最大单个日志文件大小  -->
-        <maxFileSize>10MB</maxFileSize>
-    </rollingPolicy>
-</appender>
+<!--  ch.qos.logback.core.rolling.RollingFileAppender用于文件日志记录，它支持滚动  --
+<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"
+    <encoder
+        <pattern${FILE_LOG_PATTERN}</pattern
+        <charset${FILE_LOG_CHARSET}</charset
+    </encoder
+    <!--  自定义滚动策略，防止日志文件无限变大，也就是日志文件写到什么时候为止，重新创建一个新的日志文件开始写  --
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy"
+        <!--  文件保存位置以及文件命名规则，这里用到了%d{yyyy-MM-dd}表示当前日期，%i表示这一天的第N个日志  --
+        <FileNamePatternlog/%d{yyyy-MM-dd}-spring-%i.log</FileNamePattern
+        <!--  到期自动清理日志文件  --
+        <cleanHistoryOnStarttrue</cleanHistoryOnStart
+        <!--  最大日志保留时间  --
+        <maxHistory7</maxHistory
+        <!--  最大单个日志文件大小  --
+        <maxFileSize10MB</maxFileSize
+    </rollingPolicy
+</appender
 
-<!--  指定日志输出级别，以及启用的Appender，这里就使用了我们上面的ConsoleAppender  -->
-<root level="INFO">
-    <appender-ref ref="CONSOLE"/>
-    <appender-ref ref="FILE"/>
-</root>
+<!--  指定日志输出级别，以及启用的Appender，这里就使用了我们上面的ConsoleAppender  --
+<root level="INFO"
+    <appender-ref ref="CONSOLE"/
+    <appender-ref ref="FILE"/
+</root
 ```
 
 配置完成后，日志文件也能自动生成了。
@@ -1476,7 +1476,7 @@ public class MainController {
 
 这样当我们向MDC中添加信息后，只要是当前线程（本质是ThreadLocal实现）下输出的日志，都会自动替换占位符。
 
-#### 自定义Banner
+## 自定义Banner
 
 Banner部分和日志部分是独立的，SpringBoot启动后，会先打印Banner部分，这个Banner部分也是可以自定义的。
 
@@ -1496,7 +1496,7 @@ Banner部分和日志部分是独立的，SpringBoot启动后，会先打印Bann
 //                  | \_|  ''\---/''  |   |                       //
 //                  \  .-\__  `-`  ___/-. /                       //
 //                ___`. .'  /--.--\  `. . ___                     //
-//              ."" '<  `.___\_<|>_/___.'  >'"".                  //
+//              ."" '<  `.___\_<|_/___.'  '"".                  //
 //            | | :  `- \`.;`\ _ /`;.`/ - ` : | |                 //
 //            \  \ `-.   \_ __\ /__ _/   .-` /  /                 //
 //      ========`-.____`-.___\_____/___.-`____.-'========         //
@@ -1519,7 +1519,7 @@ ${AnsiColor.BRIGHT_GREEN}  //绿色
 ${AnsiColor.YELLOW} 当前 Spring Boot 版本：${spring-boot.version}
 ```
 
-## 多环境配置
+# 多环境配置
 
 在日常开发中，项目会有多个环境。例如开发环境（develop）也就是研发过程中疯狂敲代码修BUG阶段，生产环境（production ）就是项目开发得差不多了，可以放在服务器上跑了。
 
@@ -1565,18 +1565,18 @@ spring:
 在`logback-spring.xml`添加以下内容(*注意：`springProfile`是区分大小写的！*)
 
 ```xml
-<springProfile name="dev">
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
-    </root>
-</springProfile>
+<springProfile name="dev"
+    <root level="INFO"
+        <appender-ref ref="CONSOLE"/
+        <appender-ref ref="FILE"/
+    </root
+</springProfile
 
-<springProfile name="prod">
-    <root level="INFO">
-        <appender-ref ref="FILE"/>
-    </root>
-</springProfile>
+<springProfile name="prod"
+    <root level="INFO"
+        <appender-ref ref="FILE"/
+    </root
+</springProfile
 ```
 
 **打包问题**
@@ -1588,57 +1588,57 @@ spring:
 先添加环境
 
 ```xml
-<!--分别设置开发，生产环境-->
-<profiles>
-    <!-- 开发环境 -->
-    <profile>
-        <id>dev</id>
-        <activation>
-            <activeByDefault>true</activeByDefault>
-        </activation>
-        <properties>
-            <environment>dev</environment>
-        </properties>
-    </profile>
-    <!-- 生产环境 -->
-    <profile>
-        <id>prod</id>
-        <activation>
-            <activeByDefault>false</activeByDefault>
-        </activation>
-        <properties>
-            <environment>prod</environment>
-        </properties>
-    </profile>
-</profiles>
+<!--分别设置开发，生产环境--
+<profiles
+    <!-- 开发环境 --
+    <profile
+        <iddev</id
+        <activation
+            <activeByDefaulttrue</activeByDefault
+        </activation
+        <properties
+            <environmentdev</environment
+        </properties
+    </profile
+    <!-- 生产环境 --
+    <profile
+        <idprod</id
+        <activation
+            <activeByDefaultfalse</activeByDefault
+        </activation
+        <properties
+            <environmentprod</environment
+        </properties
+    </profile
+</profiles
 ```
 
 接着，根据环境的不同，排除其他环境的配置文件：
 
 ```xml
-<resources>
-<!--排除配置文件-->
-    <resource>
-        <directory>src/main/resources</directory>
-        <!--先排除所有的配置文件-->
-        <excludes>
-            <!--使用通配符，当然可以定义多个exclude标签进行排除-->
-            <exclude>application*.yml</exclude>
-        </excludes>
-    </resource>
+<resources
+<!--排除配置文件--
+    <resource
+        <directorysrc/main/resources</directory
+        <!--先排除所有的配置文件--
+        <excludes
+            <!--使用通配符，当然可以定义多个exclude标签进行排除--
+            <excludeapplication*.yml</exclude
+        </excludes
+    </resource
 
-    <!--根据激活条件引入打包所需的配置和文件-->
-    <resource>
-        <directory>src/main/resources</directory>
-        <!--引入所需环境的配置文件-->
-        <filtering>true</filtering>
-        <includes>
-            <include>application.yml</include>
-            <!--根据maven选择环境导入配置文件-->
-            <include>application-${environment}.yml</include>
-        </includes>
-    </resource>
-</resources>
+    <!--根据激活条件引入打包所需的配置和文件--
+    <resource
+        <directorysrc/main/resources</directory
+        <!--引入所需环境的配置文件--
+        <filteringtrue</filtering
+        <includes
+            <includeapplication.yml</include
+            <!--根据maven选择环境导入配置文件--
+            <includeapplication-${environment}.yml</include
+        </includes
+    </resource
+</resources
 ```
 
 最后将Maven中的`environment`属性，传递给SpringBoot的配置文件`application.yml`，在构建时替换为对应的值：
@@ -1655,7 +1655,7 @@ spring:
 
 *注意切换环境之后要重新加载一下Maven项目，不然不会生效！*
 
-## 指标监控
+# 指标监控
 
 ​日常开发中需要对程序内部的运行情况进行监控，比如：健康度、运行指标、日志信息、线程状况等等。而SpringBoot的监控Actuator就可以解决这些问题。
 
@@ -1671,17 +1671,17 @@ spring:
 | `mappings`       | 显示所有`@RequestMapping`路径列表。       |
 | `scheduledtasks` | 显示应用程序中的计划任务。                |
 
-### 直接访问Actuator（了解就行）
+## 直接访问Actuator（了解就行）
 
 直接访问actuator只是响应个Json数据，阅读困难（特别是很复杂的时候）
 
 1. 添加依赖
 
 ```xml
-<dependency>
- 	<groupId>org.springframework.boot</groupId>
- 	<artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
+<dependency
+ 	<groupIdorg.springframework.boot</groupId
+ 	<artifactIdspring-boot-starter-actuator</artifactId
+</dependency
 ```
 
 2. 访问监控接口
@@ -1702,7 +1702,7 @@ management:
       show-details: always #展示所有的健康信息
 ```
 
-### 图形化界面SpringBoot Admin
+## 图形化界面SpringBoot Admin
 
 这个东西就是把actuator响应的Json数据进行解析，展示在图形化界面上
 
@@ -1730,10 +1730,10 @@ management:
 引入spring-boot-admin-starter-server依赖
 
 ```xml
-<dependency>
-    <groupId>de.codecentric</groupId>
-    <artifactId>spring-boot-admin-starter-server</artifactId>
-</dependency>
+<dependency
+    <groupIdde.codecentric</groupId
+    <artifactIdspring-boot-admin-starter-server</artifactId
+</dependency
 ```
 
 然后在启动类上加上@EnableAdminServer注解
@@ -1743,11 +1743,11 @@ management:
 在需要监控的模块中加上spring-boot-admin-starter-client依赖
 
 ```xml
-<dependency>
-    <groupId>de.codecentric</groupId>
-    <artifactId>spring-boot-admin-starter-client</artifactId>
-    <version>2.3.1</version>
-</dependency>
+<dependency
+    <groupIdde.codecentric</groupId
+    <artifactIdspring-boot-admin-starter-client</artifactId
+    <version2.3.1</version
+</dependency
 ```
 
 然后配置SpringBoot Admin Server的地址
@@ -1760,22 +1760,22 @@ spring:
         url: http://localhost:8888 #配置 Admin Server的地址
 ```
 
-## SpringBoot其他框架
+# SpringBoot其他框架
 
-### 邮件Mail
+## 邮件Mail
 
 很多的网站中，都会遇到邮件或是手机号验证，也就是通过你的邮箱或是手机短信去接受网站发给你的注册验证信息，填写验证码之后，就可以完成注册了，同时，网站也会绑定你的手机号或是邮箱。
 
 像这样的功能，SpringBoot已经提供了封装好的邮件模块使用：
 
 ```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-mail</artifactId>
-</dependency>
+<dependency
+    <groupIdorg.springframework.boot</groupId
+    <artifactIdspring-boot-starter-mail</artifactId
+</dependency
 ```
 
-#### 了解电子邮件
+## 了解电子邮件
 
 电子邮件是一种通信方式，是互联网应用最广的服务。通过网络的电子邮件系统，用户可以以非常低廉的价格（不管发送到哪里，都只需负担网费，实际上就是把信息发送到对方服务器而已）、非常快速的方式，与世界上任何一个地方的电子邮箱用户联系。
 
@@ -1798,7 +1798,7 @@ spring:
 
 每个邮箱服务器都有一个smtp发送服务器和pop3接收服务器，比如要从QQ邮箱发送邮件到163邮箱，那么只需要通过QQ邮箱客户端告知QQ邮箱的smtp服务器需要发送邮件，以及邮件的相关信息，然后QQ邮箱的smtp服务器就会将邮件发送到163邮箱的pop3服务器上，163邮箱会通过163邮箱客户端告知对应用户收到一封新邮件。
 
-#### 邮箱发送
+## 邮箱发送
 
 想要实现给别人发送邮件，那么就需要连接到对应电子邮箱的smtp服务器上，并告知它要发送邮件。
 
@@ -1876,7 +1876,7 @@ void contextLoads() throws MessagingException {
 }
 ```
 
-#### 邮件注册
+## 邮件注册
 
 邮箱注册流程：
 1. 请求验证码
@@ -1884,7 +1884,7 @@ void contextLoads() throws MessagingException {
 3. 用户输入验证码并填写注册信息
 4. 验证通过注册成功
 
-## 接口管理：Swagger
+# 接口管理：Swagger
 
 在前后端分离项目中，前端人员需要知道我们后端会提供什么数据，根据后端提供的数据来进行前端页面渲染（在之前我们也演示过）这个时候，我们就需要编写一个API文档，以便前端人员随时查阅。
 
@@ -1892,7 +1892,7 @@ void contextLoads() throws MessagingException {
 
 当然有，那就是丝袜哥：Swagger
 
-### 走进Swagger
+## 走进Swagger
 
 Swagger的主要功能如下：
 
@@ -1902,11 +1902,11 @@ Swagger的主要功能如下：
 结合Spring框架（Spring-fox），Swagger可以很轻松地利用注解以及扫描机制，来快速生成在线文档，以实现当我们项目启动之后，前端开发人员就可以打开Swagger提供的前端页面，查看和测试接口。依赖如下：
 
 ```xml
-<dependency>
-    <groupId>io.springfox</groupId>
-    <artifactId>springfox-boot-starter</artifactId>
-    <version>3.0.0</version>
-</dependency>
+<dependency
+    <groupIdio.springfox</groupId
+    <artifactIdspringfox-boot-starter</artifactId
+    <version3.0.0</version
+</dependency
 ```
 
 SpringBoot 2.6以上版本修改了路径匹配规则，但是Swagger3还不支持，这里换回之前的，不然启动直接报错：
@@ -1938,7 +1938,7 @@ public class SwaggerConfiguration {
 }
 ```
 
-### 接口信息配置
+## 接口信息配置
 
 虽然Swagger的UI界面已经可以很好地展示后端提供的接口信息了，但是非常的混乱，我们来看看如何配置接口的一些描述信息。
 
@@ -1980,15 +1980,15 @@ public class AuthApiController {
 })
 @ApiOperation("请求邮件验证码")   //接口描述
 @GetMapping("/verify-code")
-public RestBean<Void> verifyCode(@ApiParam("邮箱地址")   //请求参数的描述
+public RestBean<Void verifyCode(@ApiParam("邮箱地址")   //请求参数的描述
                                  @RequestParam("email") String email){
 ```
 
 ```java
 @ApiIgnore     //忽略此请求映射
 @PostMapping("/login-success")
-public RestBean<Void> loginSuccess(){
-    return new RestBean<>(200, "登陆成功");
+public RestBean<Void loginSuccess(){
+    return new RestBean<(200, "登陆成功");
 }
 ```
 
@@ -1998,7 +1998,7 @@ public RestBean<Void> loginSuccess(){
 @Data
 @ApiModel(description = "响应实体封装类")
 @AllArgsConstructor
-public class RestBean<T> {
+public class RestBean<T {
 
     @ApiModelProperty("状态码")
     int code;
@@ -2019,45 +2019,45 @@ public class RestBean<T> {
 最后我们再配置一下多环境：
 
 ```xml
-<profiles>
-    <profile>
-        <id>dev</id>
-        <activation>
-            <activeByDefault>true</activeByDefault>
-        </activation>
-        <properties>
-            <environment>dev</environment>
-        </properties>
-    </profile>
-    <profile>
-        <id>prod</id>
-        <activation>
-            <activeByDefault>false</activeByDefault>
-        </activation>
-        <properties>
-            <environment>prod</environment>
-        </properties>
-    </profile>
-</profiles>
+<profiles
+    <profile
+        <iddev</id
+        <activation
+            <activeByDefaulttrue</activeByDefault
+        </activation
+        <properties
+            <environmentdev</environment
+        </properties
+    </profile
+    <profile
+        <idprod</id
+        <activation
+            <activeByDefaultfalse</activeByDefault
+        </activation
+        <properties
+            <environmentprod</environment
+        </properties
+    </profile
+</profiles
 ```
 
 ```xml
-<resources>
-    <resource>
-        <directory>src/main/resources</directory>
-        <excludes>
-            <exclude>application*.yaml</exclude>
-        </excludes>
-    </resource>
-    <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-        <includes>
-            <include>application.yaml</include>
-            <include>application-${environment}.yaml</include>
-        </includes>
-    </resource>
-</resources>
+<resources
+    <resource
+        <directorysrc/main/resources</directory
+        <excludes
+            <excludeapplication*.yaml</exclude
+        </excludes
+    </resource
+    <resource
+        <directorysrc/main/resources</directory
+        <filteringtrue</filtering
+        <includes
+            <includeapplication.yaml</include
+            <includeapplication-${environment}.yaml</include
+        </includes
+    </resource
+</resources
 ```
 
 首先在Maven中添加两个环境，接着我们配置一下不同环境的配置文件：
@@ -2075,7 +2075,7 @@ springfox:
 在生产环境下，我们选择不开启Swagger文档以及JPA的数据库操作日志，这样我们就可以根据情况选择两套环境了。
 
 
-## 打包运行
+# 打包运行
 
 Maven生命周期中的`package`会自动将项目打包为可直接运行的Jar包
 
