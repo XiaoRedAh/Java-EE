@@ -67,7 +67,7 @@ Springboot遵循“**约定优于配置**”的原则，自动进行了默认配
 
 等到看源码的时候再说
 
-# 前置——检查环境
+# 前置—检查环境
 
 Jdk：8
 Maven：3.5以上（“文件-设置-Maven”查看）
@@ -1655,112 +1655,7 @@ spring:
 
 *注意切换环境之后要重新加载一下Maven项目，不然不会生效！*
 
-# 指标监控
-
-​日常开发中需要对程序内部的运行情况进行监控，比如：健康度、运行指标、日志信息、线程状况等等。而SpringBoot的监控Actuator就可以解决这些问题。
-
-**常用端点**
-
-| 端点名称         | 描述                                      |
-| :--------------- | :---------------------------------------- |
-| `beans`          | 显示应用程序中所有Spring Bean的完整列表。 |
-| `health`         | 显示应用程序运行状况信息。                |
-| `info`           | 显示应用程序信息。                        |
-| `loggers`        | 显示和修改应用程序中日志的配置。          |
-| `metrics`        | 显示当前应用程序的“指标”信息。            |
-| `mappings`       | 显示所有`@RequestMapping`路径列表。       |
-| `scheduledtasks` | 显示应用程序中的计划任务。                |
-
-## 直接访问Actuator（了解就行）
-
-直接访问actuator只是响应个Json数据，阅读困难（特别是很复杂的时候）
-
-1. 添加依赖
-
-```xml
-<dependency
- 	<groupIdorg.springframework.boot</groupId
- 	<artifactIdspring-boot-starter-actuator</artifactId
-</dependency
-```
-
-2. 访问监控接口
-
-http://localhost:81/actuator
-
-3. 配置启用监控端点
-
-```yml
-management:
-  endpoints:
-    enabled-by-default: true #配置启用所有端点
-	web:
-      exposure:
-        include: "*" #web端暴露所有端点
-  endpoint:
-  health:
-      show-details: always #展示所有的健康信息
-```
-
-## 图形化界面SpringBoot Admin
-
-这个东西就是把actuator响应的Json数据进行解析，展示在图形化界面上
-
-Admin Server是用来接收监控信息，并进行展示的服务
-
-Admin client提供监控信息（比如说要监控的一个项目模块就是一个Admin client）
-
-配置启用监控端点
-
-```yml
-management:
-  endpoints:
-    enabled-by-default: true #配置启用所有端点
-	web:
-      exposure:
-        include: "*" #web端暴露所有端点
-  endpoint:
-  health:
-      show-details: always #展示所有的健康信息
-```
-
-
-**先创建SpringBoot Admin Server应用**
-
-引入spring-boot-admin-starter-server依赖
-
-```xml
-<dependency
-    <groupIdde.codecentric</groupId
-    <artifactIdspring-boot-admin-starter-server</artifactId
-</dependency
-```
-
-然后在启动类上加上@EnableAdminServer注解
-
-**然后配置SpringBoot Admin client应用**
-
-在需要监控的模块中加上spring-boot-admin-starter-client依赖
-
-```xml
-<dependency
-    <groupIdde.codecentric</groupId
-    <artifactIdspring-boot-admin-starter-client</artifactId
-    <version2.3.1</version
-</dependency
-```
-
-然后配置SpringBoot Admin Server的地址
-
-```yml
-spring:
-  boot:
-    admin:
-      client:
-        url: http://localhost:8888 #配置 Admin Server的地址
-```
-
-# SpringBoot其他框架
+# 邮件功能
 
 ## 邮件Mail
 
@@ -1884,196 +1779,368 @@ void contextLoads() throws MessagingException {
 3. 用户输入验证码并填写注册信息
 4. 验证通过注册成功
 
-# 接口管理：Swagger
+# 接口规则校验
 
-在前后端分离项目中，前端人员需要知道我们后端会提供什么数据，根据后端提供的数据来进行前端页面渲染（在之前我们也演示过）这个时候，我们就需要编写一个API文档，以便前端人员随时查阅。
+用户发送的数据可能存在一些问题
 
-但是这样的一个文档，我们也不可能单独写一个项目去进行维护，并且随着我们的后端项目不断更新，文档也需要跟随更新，这显然是很麻烦的一件事情，那么有没有一种比较好的解决方案呢？
-
-当然有，那就是丝袜哥：Swagger
-
-## 走进Swagger
-
-Swagger的主要功能如下：
-
-- 支持 API 自动生成同步的在线文档：使用 Swagger 后可以直接通过代码生成文档，不再需要自己手动编写接口文档了，对程序员来说非常方便，可以节约写文档的时间去学习新技术。
-- 提供 Web 页面在线测试 API：光有文档还不够，Swagger 生成的文档还支持在线测试。参数和格式都定好了，直接在界面上输入参数对应的值即可在线测试接口。
-
-结合Spring框架（Spring-fox），Swagger可以很轻松地利用注解以及扫描机制，来快速生成在线文档，以实现当我们项目启动之后，前端开发人员就可以打开Swagger提供的前端页面，查看和测试接口。依赖如下：
-
-```xml
-<dependency
-    <groupIdio.springfox</groupId
-    <artifactIdspringfox-boot-starter</artifactId
-    <version3.0.0</version
-</dependency
+比如在下面这个接口中，在正常情况下，用户名长度规定不小于5，如果用户发送的数据是没有问题的，那么就可以正常运行。但是如果用户发送的数据并不是按照规定的，那么就会直接报错
+```java
+@ResponseBody
+@PostMapping("/submit")
+public String submit(String username,
+                     String password){
+    System.out.println(username.substring(3));
+    System.out.println(password.substring(2, 10));
+    return "请求成功!";
+}
 ```
 
-SpringBoot 2.6以上版本修改了路径匹配规则，但是Swagger3还不支持，这里换回之前的，不然启动直接报错：
-
-```yaml
-spring:
-	mvc:
-		pathmatch:
-      matching-strategy: ant_path_matcher
-```
-
-项目启动后，我们可以直接打开：http://localhost:8080/swagger-ui/index.html，这个页面（要是觉得丑，UI是可以换的，支持第三方）会显示所有的API文档，包括接口的路径、支持的方法、接口的描述等，并且我们可以直接对API接口进行测试，非常方便。
-
-我们可以创建一个配置类去配置页面的相关信息：
+可以在请求来后进行校验判断：
 
 ```java
-@Configuration
-public class SwaggerConfiguration {
-
-    @Bean
-    public Docket docket() {
-        return new Docket(DocumentationType.OAS_30).apiInfo(
-                new ApiInfoBuilder()
-                        .contact(new Contact("你的名字", "https://www.bilibili.com", "javastudy111*@163.com"))
-                        .title("图书管理系统 - 在线API接口文档")
-                        .build()
-        );
+@ResponseBody
+@PostMapping("/submit")
+public String submit(String username,
+                     String password){
+    if(username.length() > 3 || password.length() > 10) {
+        System.out.println(username.substring(3));
+        System.out.println(password.substring(2, 10));
+        return "请求成功!";
+    } else {
+        return "请求失败";
     }
 }
 ```
 
-## 接口信息配置
+但是如果每一个接口都这样去进行配置，太麻烦了。
 
-虽然Swagger的UI界面已经可以很好地展示后端提供的接口信息了，但是非常的混乱，我们来看看如何配置接口的一些描述信息。
+***
+这里可以使用SpringBoot提供了的接口校验框架：
 
-首先我们的页面中完全不需要显示ErrorController相关的API，所以我们配置一下选择哪些Controller才会生成API信息：
+**导入依赖**
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+**使用注解完成接口的校验**
 
 ```java
-@Bean
-public Docket docket() {
-    ApiInfo info = new ApiInfoBuilder()
-            .contact(new Contact("你的名字", "https://www.bilibili.com", "javastudy111@163.com"))
-            .title("图书管理系统 - 在线API接口文档")
-            .description("这是一个图书管理系统的后端API文档，欢迎前端人员查阅！")
-            .build();
-    return new Docket(DocumentationType.OAS_30)
-            .apiInfo(info)
-            .select()       //对项目中的所有API接口进行选择
-            .apis(RequestHandlerSelectors.basePackage("com.example.controller"))
-            .build();
+@Slf4j
+@Validated//在Controller上开启接口校验
+@Controller
+public class TestController {
+
+    ...
+
+    @ResponseBody
+    @PostMapping("/submit")
+    public String submit(@Length(min = 3) String username,  //使用@Length注解一步到位
+                         @Length(min = 10) String password){
+        System.out.println(username.substring(3));
+        System.out.println(password.substring(2, 10));
+        return "请求成功!";
+    }
 }
 ```
 
-接着我们来看看如何为一个Controller编写API描述信息：
+依然会抛出异常，**配置异常处理Controller**来自行处理这类异常：
 
 ```java
-@Api(tags = "账户验证接口", description = "包括用户登录、注册、验证码请求等操作。")
-@RestController
-@RequestMapping("/api/auth")
-public class AuthApiController {
-```
+@ControllerAdvice
+public class ValidationController {
 
-我们可以直接在类名称上面添加`@Api`注解，并填写相关信息，来为当前的Controller设置描述信息。
-
-接着我们可以为所有的请求映射配置描述信息：
-
-```java
-@ApiResponses({
-        @ApiResponse(code = 200, message = "邮件发送成功"),  
-        @ApiResponse(code = 500, message = "邮件发送失败")   //不同返回状态码描述
-})
-@ApiOperation("请求邮件验证码")   //接口描述
-@GetMapping("/verify-code")
-public RestBean<Void verifyCode(@ApiParam("邮箱地址")   //请求参数的描述
-                                 @RequestParam("email") String email){
-```
-
-```java
-@ApiIgnore     //忽略此请求映射
-@PostMapping("/login-success")
-public RestBean<Void loginSuccess(){
-    return new RestBean<(200, "登陆成功");
+    @ResponseBody
+    @ExceptionHandler(ConstraintViolationException.class)
+    public String error(ValidationException e){
+        return e.getMessage();   //出现异常直接返回消息
+    }
 }
 ```
 
-我们也可以为实体类配置相关的描述信息：
+***
+
+如果接口接收的**参数是对象形式的**，验证方法如下：
+
+```java
+@ResponseBody
+@PostMapping("/submit")  //在参数上添加@Valid注解表示需要验证
+public String submit(@Valid Account account){
+    System.out.println(account.getUsername().substring(3));
+    System.out.println(account.getPassword().substring(2, 10));
+    return "请求成功!";
+}
+```
 
 ```java
 @Data
-@ApiModel(description = "响应实体封装类")
-@AllArgsConstructor
-public class RestBean<T {
-
-    @ApiModelProperty("状态码")
-    int code;
-    @ApiModelProperty("状态码描述")
-    String reason;
-    @ApiModelProperty("数据实体")
-    T data;
-
-    public RestBean(int code, String reason) {
-        this.code = code;
-        this.reason = reason;
-    }
+public class Account {
+    //在对应的字段上添加校验的注解
+    @Length(min = 3) 
+    String username;
+    @Length(min = 10)
+    String password;
 }
 ```
 
-这样，我们就可以在文档中查看实体类简介以及各个属性的介绍了。
+**修改下异常处理Controller**
+对于实体类接收参数的验证，会抛出MethodArgumentNotValidException异常
 
-最后我们再配置一下多环境：
-
-```xml
-<profiles
-    <profile
-        <iddev</id
-        <activation
-            <activeByDefaulttrue</activeByDefault
-        </activation
-        <properties
-            <environmentdev</environment
-        </properties
-    </profile
-    <profile
-        <idprod</id
-        <activation
-            <activeByDefaultfalse</activeByDefault
-        </activation
-        <properties
-            <environmentprod</environment
-        </properties
-    </profile
-</profiles
+```java
+@ResponseBody
+@ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class})
+public String error(Exception e){
+    if(e instanceof ConstraintViolationException exception) {
+        return exception.getMessage();
+    } else if(e instanceof MethodArgumentNotValidException exception){
+        if (exception.getFieldError() == null) return "未知错误";
+        return exception.getFieldError().getDefaultMessage();
+    }
+    return "未知错误";
+}
 ```
 
+***
+
+**更多验证注解**
+
+|   验证注解   |                        验证的数据类型                        |                           说明                           |
+| :----------: | :----------------------------------------------------------: | :------------------------------------------------------: |
+| @AssertFalse |                       Boolean,boolean                        |                      值必须是false                       |
+| @AssertTrue  |                       Boolean,boolean                        |                       值必须是true                       |
+|   @NotNull   |                           任意类型                           |                       值不能是null                       |
+|    @Null     |                           任意类型                           |                       值必须是null                       |
+|     @Min     | BigDecimal、BigInteger、byte、short、int、long、double 以及任何Number或CharSequence子类型 |                   大于等于@Min指定的值                   |
+|     @Max     |                             同上                             |                   小于等于@Max指定的值                   |
+| @DecimalMin  |                             同上                             |         大于等于@DecimalMin指定的值（超高精度）          |
+| @DecimalMax  |                             同上                             |         小于等于@DecimalMax指定的值（超高精度）          |
+|   @Digits    |                             同上                             |                限制整数位数和小数位数上限                |
+|    @Size     |               字符串、Collection、Map、数组等                |       长度在指定区间之内，如字符串长度、集合大小等       |
+|    @Past     |       如 java.util.Date, java.util.Calendar 等日期类型       |                    值必须比当前时间早                    |
+|   @Future    |                             同上                             |                    值必须比当前时间晚                    |
+|  @NotBlank   |                     CharSequence及其子类                     |         值不为空，在比较时会去除字符串的首位空格         |
+|   @Length    |                     CharSequence及其子类                     |                  字符串长度在指定区间内                  |
+|  @NotEmpty   |         CharSequence及其子类、Collection、Map、数组          | 值不为null且长度不为空（字符串长度不为0，集合大小不为0） |
+|    @Range    | BigDecimal、BigInteger、CharSequence、byte、short、int、long 以及原子类型和包装类型 |                      值在指定区间内                      |
+|    @Email    |                     CharSequence及其子类                     |                     值必须是邮件格式                     |
+|   @Pattern   |                     CharSequence及其子类                     |               值需要与指定的正则表达式匹配               |
+|    @Valid    |                        任何非原子类型                        |                     用于验证对象属性                     |
+
+
+
+# Swagger接口管理
+
+前后端分离的开发模式中，前端和后端的工作由不同的工程师完成。在这种开发模式下，维持一份及时更新且完整的Rest API 文档将会极大的提高工作效率。
+
+传统意义上的文档都是后端开发人员手动编写的。这种方式很难保证文档的及时性，久而久之也就会失去其参考意义，反而还会加大沟通成本。
+
+而Swagger提供了一个全新的维护API文档的方式
+
+1. 代码变，文档变。只需要少量的注解，Swagger 就可以根据代码自动生成 API文档，很好的保证了文档的时效性。
+2. 跨语言性，支持 40 多种语言。
+3. Swagger UI呈现出来的是一份可交互式的API文档。我们可以直接在文档页面尝试 API 的调用，省去了准备复杂的调用参数的过程。
+
+***
+
+**先导入依赖**
 ```xml
-<resources
-    <resource
-        <directorysrc/main/resources</directory
-        <excludes
-            <excludeapplication*.yaml</exclude
-        </excludes
-    </resource
-    <resource
-        <directorysrc/main/resources</directory
-        <filteringtrue</filtering
-        <includes
-            <includeapplication.yaml</include
-            <includeapplication-${environment}.yaml</include
-        </includes
-    </resource
-</resources
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.1.0</version>
+</dependency>
 ```
 
-首先在Maven中添加两个环境，接着我们配置一下不同环境的配置文件：
+项目启动之后，直接访问：http://localhost:8080/swagger-ui/index.html， 就能看到开发文档
+开发文档中自动包含了项目种定义的接口，并且还有对应的实体类，不仅仅可以展示接口，也可以直接在上面进行调试
 
-```yaml
-  jpa:
-    show-sql: false
-    hibernate:
-      ddl-auto: update
-springfox:
-  documentation:
+**配置整体页面信息，展示自定义的文本信息**
+
+```java
+@Bean
+public OpenAPI springDocOpenAPI() {
+        return new OpenAPI().info(new Info()
+                        .title("图书管理系统 - 在线API接口文档")   //设置API文档网站标题
+                        .description("这是一个图书管理系统的后端API文档，欢迎前端人员查阅！") //网站介绍
+                        .version("2.0")   //当前API版本
+                        .license(new License().name("啦啦啦")  //遵循的协议，这里拿来写其他的也行
+                                .url("https://www.baidu.com")));
+}
+```
+
+**为Controller编写API描述信息**
+
+在类名称上面添加`@Tag`注解，并填写相关信息，来为当前的Controller设置描述信息。
+
+```java
+//使用@Tag注解来添加Controller描述信息
+@Tag(name = "账户验证相关", description = "包括用户登录、注册、验证码请求等操作。")
+public class TestController {
+	...
+}
+```
+
+**为请求映射配置描述信息**
+
+```java
+@ApiResponses({
+       //不同返回状态码描述
+       @ApiResponse(responseCode = "200", description = "测试成功"),
+       @ApiResponse(responseCode = "500", description = "测试失败")   
+})
+@Operation(summary = "请求用户数据测试接口")   //接口功能描述
+@ResponseBody
+@GetMapping("/hello")
+//请求参数描述和样例
+public String hello(@ApiParam(description = "测试文本数据", example = "KFCvivo50") String text) {
+    return "Hello World";
+}
+```
+
+**不需要展示在文档中的接口，也可以将其忽略掉**
+
+```java
+@Hidden
+@ResponseBody
+@GetMapping("/hello")
+public String hello() {
+    return "Hello World";
+}
+```
+
+**为实体类编写对应的API接口文档**
+
+```java
+@Data
+@Schema(description = "用户信息实体类")
+public class User {
+    @Schema(description = "用户编号")
+    int id;
+    @Schema(description = "用户名称")
+    String name;
+    @Schema(description = "用户邮箱")
+    String email;
+    @Schema(description = "用户密码")
+    String password;
+}
+```
+***
+
+接口文档只适合在开发环境下生成，如果是生产环境，需要关闭文档：
+
+```java
+springdoc:
+  api-docs:
     enabled: false
 ```
 
-在生产环境下，我们选择不开启Swagger文档以及JPA的数据库操作日志，这样我们就可以根据情况选择两套环境了。
+# 指标监控
 
+​日常开发中需要对程序内部的运行情况进行监控，比如：健康度、运行指标、日志信息、线程状况等等。而SpringBoot的监控Actuator就可以解决这些问题。
+
+**常用端点**
+
+| 端点名称         | 描述                                      |
+| :--------------- | :---------------------------------------- |
+| `beans`          | 显示应用程序中所有Spring Bean的完整列表。 |
+| `health`         | 显示应用程序运行状况信息。                |
+| `info`           | 显示应用程序信息。                        |
+| `loggers`        | 显示和修改应用程序中日志的配置。          |
+| `metrics`        | 显示当前应用程序的“指标”信息。            |
+| `mappings`       | 显示所有`@RequestMapping`路径列表。       |
+| `scheduledtasks` | 显示应用程序中的计划任务。                |
+
+## 直接访问Actuator（了解就行）
+
+直接访问actuator只是响应个Json数据，阅读困难（特别是很复杂的时候）
+
+1. 添加依赖
+
+```xml
+<dependency
+ 	<groupIdorg.springframework.boot</groupId
+ 	<artifactIdspring-boot-starter-actuator</artifactId
+</dependency
+```
+
+2. 访问监控接口
+
+http://localhost:81/actuator
+
+3. 配置启用监控端点
+
+```yml
+management:
+  endpoints:
+    enabled-by-default: true #配置启用所有端点
+	web:
+      exposure:
+        include: "*" #web端暴露所有端点
+  endpoint:
+  health:
+      show-details: always #展示所有的健康信息
+```
+
+## 图形化界面SpringBoot Admin
+
+这个东西就是把actuator响应的Json数据进行解析，展示在图形化界面上
+
+Admin Server是用来接收监控信息，并进行展示的服务
+
+Admin client提供监控信息（比如说要监控的一个项目模块就是一个Admin client）
+
+配置启用监控端点
+
+```yml
+management:
+  endpoints:
+    enabled-by-default: true #配置启用所有端点
+	web:
+      exposure:
+        include: "*" #web端暴露所有端点
+  endpoint:
+  health:
+      show-details: always #展示所有的健康信息
+```
+
+
+**先创建SpringBoot Admin Server应用**
+
+引入spring-boot-admin-starter-server依赖
+
+```xml
+<dependency
+    <groupIdde.codecentric</groupId
+    <artifactIdspring-boot-admin-starter-server</artifactId
+</dependency
+```
+
+然后在启动类上加上@EnableAdminServer注解
+
+**然后配置SpringBoot Admin client应用**
+
+在需要监控的模块中加上spring-boot-admin-starter-client依赖
+
+```xml
+<dependency
+    <groupIdde.codecentric</groupId
+    <artifactIdspring-boot-admin-starter-client</artifactId
+    <version2.3.1</version
+</dependency
+```
+
+然后配置SpringBoot Admin Server的地址
+
+```yml
+spring:
+  boot:
+    admin:
+      client:
+        url: http://localhost:8888 #配置 Admin Server的地址
+```
 
 # 打包运行
 
