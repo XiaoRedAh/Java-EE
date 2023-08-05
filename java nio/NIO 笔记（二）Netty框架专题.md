@@ -358,25 +358,25 @@ public static void main(String[] args) {
 
    比如之前在NIO中使用的`transferTo()`方法，就是利用了这种机制来实现零拷贝的。
 
-### Netty工作模型
+## Netty工作模型
 
-前面我们了解了Netty为我们提供的更高级的缓冲区类，我们接着来看看Netty是如何工作的，上一章我们介绍了Reactor模式，而Netty正是以主从Reactor多线程模型为基础，构建出了一套高效的工作模型。
-
+Netty以主从Reactor多线程模型为基础，构建出了一套高效的工作模型。
 大致工作模型图如下：
 
 ![image-20230306174117322](https://s2.loli.net/2023/03/06/7qrSNvm6ePpMd9H.png)
 
-可以看到，和我们之前介绍的主从Reactor多线程模型非常类似：
+可以看到，和主从Reactor多线程模型非常类似：
 
 ![image-20230306174127616](https://s2.loli.net/2023/03/06/pWGVdnqsmjucClJ.png)
 
-所有的客户端需要连接到主Reactor完成Accept操作后，其他的操作由从Reactor去完成，这里也是差不多的思想，但是它进行了一些改进，我们来看一下它的设计：
+所有的客户端需要连接到主Reactor完成Accept操作后，其他的操作由从Reactor去完成，这里也是差不多的思想，但是它进行了一些改进：
 
-* Netty 抽象出两组线程池BossGroup和WorkerGroup，BossGroup专门负责接受客户端的连接, WorkerGroup专门负读写，就像我们前面说的主从Reactor一样。
-* 无论是BossGroup还是WorkerGroup，都是使用EventLoop（事件循环，很多系统都采用了事件循环机制，比如前端框架Node.js，事件循环顾名思义，就是一个循环，不断地进行事件通知）来进行事件监听的，整个Netty也是使用事件驱动来运作的，比如当客户端已经准备好读写、连接建立时，都会进行事件通知，说白了就像我们之前写NIO多路复用那样，只不过这里换成EventLoop了而已，它已经帮助我们封装好了一些常用操作，而且我们可以自己添加一些额外的任务，如果有多个EventLoop，会存放在EventLoopGroup中，EventLoopGroup就是BossGroup和WorkerGroup的具体实现。
+* Netty 抽象出两组线程池BossGroup和WorkerGroup，BossGroup专门负责接受客户端的连接, WorkerGroup专门负读写，就像主从Reactor一样。
+* 无论是BossGroup还是WorkerGroup，都是使用EventLoop（事件循环，很多系统都采用了事件循环机制，比如前端框架Node.js，事件循环顾名思义，就是一个循环，不断地进行事件通知）来进行事件监听的，整个Netty也是使用事件驱动来运作的，比如当客户端已经准备好读写、连接建立时，都会进行事件通知。说白了就像之前写NIO多路复用那样，只不过这里换成EventLoop而已，它已经封装好了一些常用操作，而且我们可以自己添加一些额外的任务，如果有多个EventLoop，会存放在EventLoopGroup中，EventLoopGroup就是BossGroup和WorkerGroup的具体实现。
 * 在BossGroup之后，会正常将SocketChannel绑定到WorkerGroup中的其中一个EventLoop上，进行后续的读写操作监听。
 
-前面我们大致了解了一下Netty的工作模型，接着我们来尝试创建一个Netty服务器：
+***
+**创建一个Netty服务器**
 
 ```java
 public static void main(String[] args) {
@@ -410,9 +410,7 @@ public static void main(String[] args) {
 }
 ```
 
-可以看到上面写了很多东西，但是你一定会懵逼，这些新来的东西，都是什么跟什么啊，怎么一个也没看明白？没关系，我们可以暂时先将代码写在这里，具体的各个部分，还请听后面细细道来。
-
-我们接着编写一个客户端，客户端可以直接使用我们之前的：
+客户端可以直接使用之前写好的那个
 
 ```java
 public static void main(String[] args) {
@@ -438,9 +436,9 @@ public static void main(String[] args) {
 }
 ```
 
-通过通道正常收发数据即可，这样我们就成功搭建好了一个Netty服务器。
+通过通道正常收发数据即可，这样就成功搭建好了一个Netty服务器。
 
-### Channel详解
+## Channel详解
 
 在学习NIO时，我们就已经接触到Channel了，我们可以通过通道来进行数据的传输，并且通道支持双向传输。
 
