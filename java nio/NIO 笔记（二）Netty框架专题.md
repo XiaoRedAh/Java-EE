@@ -1,24 +1,20 @@
-# Netty框架
+# NIO框架存在的问题
 
-前面我们学习了Java为我们提供的NIO框架，提供使用NIO提供的三大组件，我们就可以编写更加高性能的客户端/服务端网络程序了，甚至还可以自行规定一种通信协议进行通信。
+通过使用NIO提供的三大组件，可以编写更加高性能的客户端/服务端网络程序了，甚至还可以自行规定一种通信协议进行通信。
+但NIO还是不够方便，而且有一些不容忽视的问题
 
-## NIO框架存在的问题
+## 客户端关闭导致服务端空轮询
 
-但是之前我们在使用NIO框架的时候，还是发现了一些问题，我们先来盘点一下。
+之前编写的代码里：
+当客户端主动与服务端断开连接时，会导致READ事件一直被触发，也就是说`selector.select()`会直接通过，并且是可读的状态。
+但是实际上读到的数据是空的，在空轮询两次后就抛出异常了（也有可能会无限循环下去）所
 
-### 客户端关闭导致服务端空轮询
-
-可能在之前的实验中，你发现了这样一个问题：
-
-![image-20230306173647589](https://s2.loli.net/2023/03/06/jCHunMSWTOsUwD6.png)
-
-当我们的客户端主动与服务端断开连接时，会导致READ事件一直被触发，也就是说`selector.select()`会直接通过，并且是可读的状态，但是我们发现实际上读到是数据是一个空的（上面的图中在空轮询两次后抛出异常了，也有可能是无限的循环下去）所以这里我们得稍微处理一下：
-
+在原代码中稍微处理一下：
 ```java
 } else if(key.isReadable()) {
     SocketChannel channel = (SocketChannel) key.channel();
     ByteBuffer buffer = ByteBuffer.allocate(128);
-    //这里我们需要判断一下，如果read操作得到的结果是-1，那么说明服务端已经断开连接了
+    //判断一下，如果read操作得到的结果是-1，那么说明服务端已经断开连接了
     if(channel.read(buffer) < 0) {
         System.out.println("客户端已经断开连接了："+channel.getRemoteAddress());
         channel.close();   //直接关闭此通道
@@ -30,21 +26,21 @@
 }
 ```
 
-这样，我们就可以在客户端主动断开时关闭连接了：
+这样，就可以在客户端主动断开时关闭连接了：
 
-![image-20230306173700652](https://s2.loli.net/2023/03/06/rKndw4u9P6Es1hI.png)
-
-当然，除了这种情况可能会导致空轮询之外，实际上还有一种可能，这种情况是NIO框架本身的BUG：
+***
+还有一种导致空轮询的原因，这种情况是NIO框架本身的BUG：
 
 ```java
 while (true) {
-    int count = selector.select();  //由于底层epoll机制的问题，导致select方法可能会一直返回0，造成无限循环的情况。
+    //由于底层epoll机制的问题，导致select方法可能会一直返回0，造成无限循环的情况。
+    int count = selector.select();  
     System.out.println("监听到 "+count+" 个事件");
     Set<SelectionKey> selectionKeys = selector.selectedKeys();
     Iterator<SelectionKey> iterator = selectionKeys.iterator();
 ```
 
-详细请看JDK官方BUG反馈：
+详细看JDK官方BUG反馈：
 
 1. [JDK-6670302 : (se) NIO selector wakes up with 0 selected keys infinitely](https://link.jianshu.com/?t=http%3A%2F%2Fbugs.java.com%2Fbugdatabase%2Fview_bug.do%3Fbug_id%3D6670302)
 2. [JDK-6403933 : (se) Selector doesn't block on Selector.select(timeout) (lnx)](https://link.jianshu.com/?t=http%3A%2F%2Fbugs.java.com%2Fbugdatabase%2Fview_bug.do%3Fbug_id%3D6403933)
@@ -55,17 +51,15 @@ while (true) {
 
 这个问题本质是与操作系统有关的，所以JDK一直都认为是操作系统的问题，不应该由自己来处理，所以这个问题在当时的好几个JDK版本都是存在的，这是一个很严重的空转问题，无限制地进行空转操作会导致CPU资源被疯狂消耗。
 
-不过，这个问题，却被Netty框架巧妙解决了，我们后面再说。
+这个问题被Netty框架巧妙解决了
 
-### 粘包/拆包问题
+## 粘包/拆包问题
 
-除了上面的问题之外，我们接着来看下一个问题。
-
-我们在`计算机网络`这门课程中学习过，操作系统通过TCP协议发送数据的时候，也会先将数据存放在缓冲区中，而至于什么时候真正地发出这些数据，是由TCP协议来决定的，这是我们无法控制的事情。
+操作系统通过TCP协议发送数据的时候，会先将数据存放在缓冲区中，而至于什么时候真正地发出这些数据，是由TCP协议来决定的，我们无法控制。
 
 ![image-20230306173718414](https://s2.loli.net/2023/03/06/ctmzGVl1BU3nAvp.png)
 
-也就是说，比如现在我们要发送两个数据包（P1/P2），理想情况下，这两个包应该是依次到达服务端，并由服务端正确读取两次数据出来，但是由于上面的机制，可能会出现下面的情况：
+比如现在要发送两个数据包（P1/P2），理想情况下，这两个包应该是依次到达服务端，并由服务端正确读取两次数据出来，但是由于上面的机制，可能会出现下面的情况：
 
 1. 可能P1和P2被合在一起发送给了服务端（粘包现象）
 2. 可能P1和P2的前半部分合在一起发送给了服务端（拆包现象）
@@ -73,14 +67,16 @@ while (true) {
 
 ![image-20230306173728520](https://s2.loli.net/2023/03/06/qKL8hGSs5mEOdXQ.png)
 
-当然，对于这种问题，也有一些比较常见的解决方案：
+对于这种问题，比较常见的三种解决方案：
 
-1. 消息定长，发送方和接收方规定固定大小的消息长度，例如每个数据包大小固定为200字节，如果不够，空位补空格，只有接收了200个字节之后，作为一个完整的数据包进行处理。
+1. 消息定长，发送方和接收方规定固定大小的消息长度，例如每个数据包大小固定为200字节，如果不够，空位补空格。每接收到200个字节，将它们作为一个完整的数据包进行处理。
 2. 在每个包的末尾使用固定的分隔符，比如每个数据包末尾都是`\r\n`，这样就一定需要读取到这样的分隔符才能将前面所有的数据作为一个完整的数据包进行处理。
 3. 将消息分为头部和本体，在头部中保存有当前整个数据包的长度，只有在读到足够长度之后才算是读到了一个完整的数据包。
 
-这里我们就来演示一下第一种解决方案：
+***
 
+演示第一种解决方案：
+当客户端发送消息时，如果没有达到30个字节，那么会暂时存储起来，等有30个之后再一次性得到。如果数据量超过了30，那么最多也只会读取30个字节，其他的放在下一批：
 ```java
 public static void main(String[] args) {
     try (ServerSocketChannel serverChannel = ServerSocketChannel.open();
@@ -108,31 +104,21 @@ public static void main(String[] args) {
                	...
 ```
 
-现在，当我们的客户端发送消息时，如果没有达到30个字节，那么会暂时存储起来，等有30个之后再一次性得到，当然如果数据量超过了30，那么最多也只会读取30个字节，其他的放在下一批：
-
 ![image-20230306173746619](https://s2.loli.net/2023/03/06/FA7gvlkx5OzYVWd.png)
 
 ![image-20230306173755459](https://s2.loli.net/2023/03/06/cnrpeUVFGN8oRt5.png)
 
-这样就可以在一定程度上解决粘包/拆包问题了。
+# Netty框架
 
-***
+NIO存在的那些问题，在Netty框架中，都被巧妙的解决了。
 
-## 走进Netty框架
+Netty是由JBOSS提供的一个开源的java网络编程框架，主要是对java的nio包进行了再次封装。Netty比java原生的nio包提供了更加强大、稳定的功能和易于使用的api。 
 
-前面我们盘点了一下NIO存在的一些问题，而在Netty框架中，这些问题都被巧妙的解决了。
-
-Netty是由JBOSS提供的一个开源的java网络编程框架，主要是对java的nio包进行了再次封装。Netty比java原生的nio包提供了更加强大、稳定的功能和易于使用的api。 netty的作者是Trustin Lee，这是一个韩国人，他还开发了另外一个著名的网络编程框架，mina。二者在很多方面都十分相似，它们的线程模型也是基本一致 。不过netty社区的活跃程度要mina高得多。
-
-Netty实际上应用场景非常多，比如我们的Minecraft游戏服务器：
-
-![image-20230306173806432](https://s2.loli.net/2023/03/06/N8FJbtCaz7v2xe4.png)
-
-Java版本的Minecraft服务器就是使用Netty框架作为网络通信的基础，正是得益于Netty框架的高性能，我们才能愉快地和其他的小伙伴一起在服务器里面炸服。
-
-学习了Netty框架后，说不定你也可以摸索到部分Minecraft插件/模组开发的底层细节（太折磨了，UP主高中搞了大半年这玩意）
-
-当然除了游戏服务器之外，我们微服务之间的远程调用也可以使用Netty来完成，比如Dubbo的RPC框架，包括最新的SpringWebFlux框架，也抛弃了内嵌Tomcat而使用Netty作为通信框架。既然Netty这么强大，那么现在我们就开始Netty的学习吧！
+Netty实际上应用场景非常多
+* 游戏服务器(如Minecraft)
+* 微服务之间的远程调用(如Dubbo的RPC框架)
+* SpringWebFlux框架抛弃了内嵌Tomcat而使用Netty作为通信框架
+* ...
 
 导包先：
 
@@ -146,7 +132,7 @@ Java版本的Minecraft服务器就是使用Netty框架作为网络通信的基�
 </dependencies>
 ```
 
-### ByteBuf介绍
+## ByteBuf介绍
 
 Netty并没有使用NIO中提供的ByteBuffer来进行数据装载，而是自行定义了一个ByteBuf类。
 

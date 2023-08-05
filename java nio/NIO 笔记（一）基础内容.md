@@ -2221,4 +2221,4 @@ public class Acceptor implements Runnable{
 }
 ```
 
-现在，SocketChannel相关的操作就由从Reactor进行处理，而不是一律交给主Reactor进行操作。
+现在，SocketChannel相关的操作就由从Reactor进行处理，而不是一律交给主Reactor进行操作。  
