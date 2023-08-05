@@ -1734,11 +1734,9 @@ public static void main(String[] args) throws IOException, InterruptedException 
 
 # 多路复用网络通信
 
-前面我们已经介绍了NIO框架的两大核心：Buffer和Channel，我们接着来看看最后一个内容。
+## 传统阻塞I/O网络通信
 
-### 传统阻塞I/O网络通信
-
-说起网络通信，相信各位并不陌生，正是因为网络的存在我们才能走进现代化的社会，在JavaWeb阶段，我们学习了如何使用Socket建立TCP连接进行网络通信：
+在JavaWeb阶段，通过使用Socket建立TCP连接进行网络通信：
 
 ```java
 public static void main(String[] args) {
@@ -1781,7 +1779,7 @@ public static void main(String[] args) {
 }
 ```
 
-当然，我们也可以使用前面讲解的通道来进行通信：
+也可以使用通道来进行通信：
 
 ```java
 public static void main(String[] args) {
@@ -1831,39 +1829,42 @@ public static void main(String[] args) {
     }
 }
 ```
-
-虽然可以通过传统的Socket进行网络通信，但是我们发现，如果要进行IO操作，我们需要单独创建一个线程来进行处理，比如现在有很多个客户端，服务端需要同时进行处理，那么如果我们要处理这些客户端的请求，那么我们就只能单独为其创建一个线程来进行处理：
+***
+虽然可以通过传统的Socket进行网络通信，但是如果要进行IO操作，需要单独创建一个线程来进行处理。
+比如现在有很多个客户端，服务端需要同时进行处理，就只能单独为其创建一个线程来进行处理：
 
 ![image-20230306173456889](https://s2.loli.net/2023/03/06/FOrzfHUKTNonJvt.png)
 
-虽然这样看起来比较合理，但是随着客户端数量的增加，如果要保持持续通信，那么就不能摧毁这些线程，而是需要一直保留（但是实际上很多时候只是保持连接，一直在阻塞等待客户端的读写操作，IO操作的频率很低，这样就白白占用了一条线程，很多时候都是站着茅坑不拉屎），但是我们的线程不可能无限制的进行创建，总有一天会耗尽服务端的资源，那么现在怎么办呢，关键是现在又有很多客户端源源不断地连接并进行操作，这时，我们就可以利用NIO为我们提供的多路复用编程模型。
+随着客户端数量的增加，如果要保持持续通信，就要一直保留这些线程【很多时候只是保持连接，一直在阻塞等待客户端的读写操作，而IO操作的频率很低，这样就白白占用了一条线程，造成资源浪费】
+客户端源源不断地连接并进行操作，但是线程不可能无限制地创建，总有一天会耗尽服务端的资源
 
-我们来看看NIO为我们提供的模型：
+这时，就可以利用NIO提供的多路复用编程模型：
 
 ![image-20230306173506227](https://s2.loli.net/2023/03/06/jFS86QyLHAwn9fR.png)
 
-服务端不再是一个单纯通过`accept()`方法来创建连接的机制了，而是根据客户端不同的状态，Selector会不断轮询，只有客户端在对应的状态时，比如真正开始读写操作时，才会创建线程或进行处理（这样就不会一直阻塞等待某个客户端的IO操作了），而不是创建之后需要一直保持连接，即使没有任何的读写操作。这样就不会因为占着茅坑不拉屎导致线程无限制地创建下去了。
+服务端不再是一个单纯通过`accept()`方法来创建连接的机制了，而是根据客户端不同的状态，`Selector`会不断轮询，只有客户端在对应的状态时，比如真正开始读写操作时，才会创建线程或进行处理（这样就不会一直阻塞等待某个客户端的IO操作了）.
+这么做后，就可以避免占着茅坑不拉屎，导致线程无限制地创建下去了。
 
-通过这种方式，甚至单线程都能做到高效的复用，最典型的例子就是Redis了，因为内存的速度非常快，多线程上下文的开销就会显得有些拖后腿，还不如直接单线程简单高效，这也是为什么Redis单线程也能这么快的原因。
+通过这种方式，甚至单线程都能做到高效的复用，最典型的例子就是Redis。因为内存的速度非常快，多线程上下文的开销就会显得有些拖后腿，还不如直接单线程简单高效，这也是为什么Redis单线程也能这么快的原因。
 
-因此，我们就从NIO框架的第三个核心内容：Selector，开始讲起。
+## 选择器与I/O多路复用
 
-### 选择器与I/O多路复用
+选择器是当某一个状态（比如读、写、请求）就绪时，才会进行处理，而不是让程序主动地进行等待。
 
-前面我们大概了解了一下选择器，我们知道，选择器是当具体有某一个状态（比如读、写、请求）已经就绪时，才会进行处理，而不是让我们的程序主动地进行等待。
-
-既然我们现在需要实现IO多路复用，那么我们来看看常见的IO多路复用模型，也就是Selector的实现方案，比如现在有很多个用户连接到我们的服务器：
-
+Selector实现IO多路复用的三种方案：
 * **select**：当这些连接出现具体的某个状态时，只是知道已经就绪了，但是不知道详具体是哪一个连接已经就绪，每次调用都进行线性遍历所有连接，时间复杂度为`O(n)`，并且存在最大连接数限制。
 * **poll**：同上，但是由于底层采用链表，所以没有最大连接数限制。
 * **epoll**：采用事件通知方式，当某个连接就绪，能够直接进行精准通知（这是因为在内核实现中epoll是根据每个fd上面的callback函数实现的，只要就绪会会直接回调callback函数，实现精准通知，但是只有Linux支持这种方式），时间复杂度`O(1)`，Java在Linux环境下正是采用的这种模式进行实现的。
 
-好了，既然多路复用模型了解完毕了，那么我们就来看看如何让我们的网络通信实现多路复用：
+***
+**网络通信实现多路复用案例**
 
+服务端
 ```java
 public static void main(String[] args) {
+    //开启一个新的Selector，这玩意也是要关闭释放资源的
     try (ServerSocketChannel serverChannel = ServerSocketChannel.open();
-         Selector selector = Selector.open()){   //开启一个新的Selector，这玩意也是要关闭释放资源的
+         Selector selector = Selector.open()){   
         serverChannel.bind(new InetSocketAddress(8080));
         //要使用选择器进行操作，必须使用非阻塞的方式，这样才不会像阻塞IO那样卡在accept()，而是直接通过，让选择器去进行下一步操作
         serverChannel.configureBlocking(false);
@@ -1874,7 +1875,8 @@ public static void main(String[] args) {
         //SelectionKey.OP_READ --- 读 就绪事件，表示通道中已经有了可读的数据，可以执行读操作了
         //SelectionKey.OP_WRITE --- 写 就绪事件，表示已经可以向通道写数据了（这玩意比较特殊，一般情况下因为都是可以写入的，所以可能会无限循环）
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-        while (true) {   //无限循环等待新的用户网络操作
+        //无限循环等待新的用户网络操作
+        while (true) {  
             //每次选择都可能会选出多个已经就绪的网络操作，没有操作时会暂时阻塞
             int count = selector.select();
             System.out.println("监听到 "+count+" 个事件");
@@ -1911,18 +1913,18 @@ public static void main(String[] args) {
 }
 ```
 
-接着我们来编写一下客户客户端：
-
+客户端
 ```java
 public static void main(String[] args) {
     //创建一个新的SocketChannel，一会通过通道进行通信
     try (SocketChannel channel = SocketChannel.open(new InetSocketAddress("localhost", 8080));
          Scanner scanner = new Scanner(System.in)){
         System.out.println("已连接到服务端！");
-        while (true) {   //咱给它套个无限循环，这样就能一直发消息了
+        //套个无限循环，这样就能一直发消息了
+        while (true) {   
             System.out.println("请输入要发送给服务端的内容：");
             String text = scanner.nextLine();
-            //直接向通道中写入数据，真舒服
+            //直接向通道中写入数据
             channel.write(ByteBuffer.wrap(text.getBytes()));
             System.out.println("已发送！");
             ByteBuffer buffer = ByteBuffer.allocate(128);
@@ -1936,28 +1938,29 @@ public static void main(String[] args) {
 }
 ```
 
-我们来看看效果：
+只用了一个线程，就能够同时处理多个请求，可见多路复用是多么重要。
 
-![image-20230306173522171](https://s2.loli.net/2023/03/06/NM3AosF5fYcJmCe.png)
+## 实现Reactor模式
 
-![image-20230306173532269](https://s2.loli.net/2023/03/06/Skr5gyIlzojnPGf.png)
+前面简单实现了多路复用网络通信，采用Reactor模式，对服务端进行优化。
 
-可以看到成功实现了，当然各位也可以跟自己的室友一起开客户端进行测试，现在，我们只用了一个线程，就能够同时处理多个请求，可见多路复用是多么重要。
-
-### 实现Reactor模式
-
-前面我们简单实现了多路复用网络通信，我们接着来了解一下Reactor模式，对我们的服务端进行优化。
-
-现在我们来看看如何进行优化，我们首先抽象出两个组件，Reactor线程和Handler处理器：
+首先抽象出两个组件，Reactor线程和Handler处理器：
 
 * Reactor线程：负责响应IO事件，并分发到Handler处理器。新的事件包含连接建立就绪、读就绪、写就绪等。
 * Handler处理器：执行非阻塞的操作。
 
-实际上我们之前编写的算是一种单线程Reactor的朴素模型（面向过程的写法），我们来看看标准的写法：
+### 单线程Reactor模式
+
+之前编写的算是一种单线程Reactor的朴素模型（面向过程的写法）
+标准的写法：
 
 ![image-20230306173542506](https://s2.loli.net/2023/03/06/IFmc73Bb9ihwE8V.png)
 
-客户端还是按照我们上面的方式连接到Reactor，并通过选择器走到Acceptor或是Handler，Acceptor主要负责客户端连接的建立，Handler负责读写操作，代码如下，首先是Handler：
+客户端还是按照之前的方式连接到Reactor，并通过选择器走到Acceptor或是Handler，Acceptor主要负责客户端连接的建立，Handler负责读写操作
+***
+代码如下
+
+Handler
 
 ```java
 public class Handler implements Runnable{
@@ -1983,7 +1986,7 @@ public class Handler implements Runnable{
 }
 ```
 
-接着是Acceptor，实际上就是把上面的业务代码搬个位置罢了：
+Acceptor：实际上就是把上面的业务代码搬个位置
 
 ```java
 /**
@@ -2014,8 +2017,8 @@ public class Acceptor implements Runnable{
 }
 ```
 
-这里我们在注册时丢了一个附加对象进去，这个附加对象会在选择器选择到此通道上时，可以通过`attachment()`方法进行获取，对于我们简化代码有大作用，一会展示，我们接着来看看Reactor：
-
+Reactor
+在注册时丢了一个附加对象进去，在选择器选择到此通道上时，可以通过`attachment()`方法获取到这个附加对象，对于简化代码有大作用
 ```java
 public class Reactor implements Closeable, Runnable{
 
@@ -2065,8 +2068,7 @@ public class Reactor implements Closeable, Runnable{
 }
 ```
 
-最后我们编写一下主类：
-
+主类
 ```java
 public static void main(String[] args) {
     //创建Reactor对象，启动，完事
@@ -2078,17 +2080,22 @@ public static void main(String[] args) {
 }
 ```
 
-这样，我们就实现了单线程Reactor模式，注意全程使用到的都只是一个线程，没有创建新的线程来处理任何事情。
+综上代码，就实现了单线程Reactor模式。全程使用到的都只是一个线程，没有创建新的线程来处理任何事情。
 
-但是单线程始终没办法应对大量的请求，如果请求量上去了，单线程还是很不够用，接着我们来看看多线程Reactor模式，它创建了多个线程处理，我们可以将数据读取完成之后的操作交给线程池来执行：
+### 多线程Reacotr模式
+
+单线程始终没办法应对大量的请求，如果请求量上去了，单线程还是很不够用
+
+多线程Reactor模式创建了多个线程处理，可以将数据读取完成之后的操作交给线程池来执行：
 
 ![image-20230306173555763](https://s2.loli.net/2023/03/06/DlMSEZ2dvc3pQHJ.png)
 
-其实我们只需要稍微修改一下Handler就行了：
+只需要稍微修改一下Handler就行了：
+在数据读出之后，将数据处理交给线程池执行
 
 ```java
 public class Handler implements Runnable{
-		//把线程池给安排了，10个线程
+    //把线程池给安排了，10个线程
     private static final ExecutorService POOL = Executors.newFixedThreadPool(10);
     private final SocketChannel channel;
     public Handler(SocketChannel channel) {
@@ -2115,15 +2122,15 @@ public class Handler implements Runnable{
     }
 }
 ```
-
-这样，在数据读出之后，就可以将数据处理交给线程池执行。
-
-但是这样感觉还是划分的不够，一个Reactor需要同时处理来自客户端的所有操作请求，显得有些乏力，那么不妨我们将Reactor做成一主多从的模式，让主Reactor只负责Accept操作，而其他的Reactor进行各自的其他操作：
+***
+但是这样还是划分的不够，一个Reactor需要同时处理来自客户端的所有操作请求，显得有些乏力
+可以**将Reactor做成一主多从的模式**，让主Reactor只负责Accept操作，而其他的Reactor进行各自的其他操作：
 
 ![image-20230306173607113](https://s2.loli.net/2023/03/06/1DMlvbdLxpca3f5.png)
 
-现在我们来重新设计一下我们的代码，Reactor类就作为主节点，不进行任何修改，我们来修改一下其他的：
+Reactor类就作为主节点，不进行任何修改
 
+SubReactor：作为从Reactor
 ```java
 //SubReactor作为从Reactor
 public class SubReactor implements Runnable, Closeable {
@@ -2187,7 +2194,7 @@ public class SubReactor implements Runnable, Closeable {
 }
 ```
 
-我们接着来修改一下Acceptor类：
+修改后的Acceptor类：
 
 ```java
 public class Acceptor implements Runnable{
@@ -2214,6 +2221,4 @@ public class Acceptor implements Runnable{
 }
 ```
 
-现在，SocketChannel相关的操作就由从Reactor进行处理了，而不是一律交给主Reactor进行操作。
-
-至此，我们已经了解了NIO的三大组件：*Buffer、Channel、Selector*，有关NIO基础相关的内容，就讲解到这里。下一章我们将继续讲解基于NIO实现的高性能网络通信框架Netty。
+现在，SocketChannel相关的操作就由从Reactor进行处理，而不是一律交给主Reactor进行操作。
