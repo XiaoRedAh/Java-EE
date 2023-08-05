@@ -898,15 +898,13 @@ public static void main(String[] args) {
 
 ## 直接缓冲区
 
-**注意：**推荐学习完成JVM篇再来学习这一部分。
+前面一直使用的都是堆缓冲区，实际上数据是保存在一个数组中的，占用的是堆内存。
+如果创建直接缓冲区，则是申请堆外内存进行数据保存，采用操作系统本地的IO，相比堆缓冲区会快一些。
 
-最后我们来看一下直接缓冲区，我们前面一直使用的都是堆缓冲区，也就是说实际上数据是保存在一个数组中的，如果你已经完成了JVM篇的学习，一定知道实际上占用的是堆内存，而我们也可以创建一个直接缓冲区，也就是申请堆外内存进行数据保存，采用操作系统本地的IO，相比堆缓冲区会快一些。
-
-那么怎么使用直接缓冲区呢？我们可以通过`allocateDirect`方法来创建：
-
+通过`allocateDirect`方法来创建直接缓冲区：
 ```java
 public static void main(String[] args) {
-    //这里我们申请一个直接缓冲区
+    //申请一个直接缓冲区
     ByteBuffer buffer = ByteBuffer.allocateDirect(10);
   	//使用方式基本和之前是一样的
     buffer.put((byte) 66);
@@ -914,8 +912,8 @@ public static void main(String[] args) {
     System.out.println(buffer.get());
 }
 ```
-
-我们来看看这个`allocateDirect`方法是如何创建一个直接缓冲区的：
+***
+**探究`allocateDirect`方法如何创建直接缓冲区**
 
 ```java
 public static ByteBuffer allocateDirect(int capacity) {
@@ -923,16 +921,17 @@ public static ByteBuffer allocateDirect(int capacity) {
 }
 ```
 
-这个方法直接创建了一个新的DirectByteBuffer对象，那么这个类又是怎么进行创建的呢？
+这个方法直接创建了一个DirectByteBuffer对象
+它并不是直接继承自ByteBuffer，而是MappedByteBuffer，并且实现了接口DirectBuffer：
 
 ![image-20230306173111350](https://s2.loli.net/2023/03/06/HsWqivMefkVtNrC.png)
 
-可以看到它并不是直接继承自ByteBuffer，而是MappedByteBuffer，并且实现了接口DirectBuffer，我们先来看看这个接口：
+先来看看这个DirectBuffer接口：
 
 ```java
 public interface DirectBuffer {
     public long address();   //获取内存地址
-    public Object attachment();   //附加对象，这是为了保证某些情况下内存不被释放，我们后面细谈
+    public Object attachment();   //附加对象，这是为了保证某些情况下内存不被释放
     public Cleaner cleaner();   //内存清理类
 }
 ```
@@ -946,7 +945,7 @@ public abstract class MappedByteBuffer extends ByteBuffer {
 }
 ```
 
-接着我们来看看DirectByteBuffer类的成员变量：
+DirectByteBuffer类的成员变量：
 
 ```java
 // 把Unsafe类取出来
@@ -965,7 +964,8 @@ protected static final boolean unaligned = Bits.unaligned();
 private final Object att;
 ```
 
-接着我们来看看构造方法：
+构造方法：
+直接通过Unsafe类来申请足够的堆外内存保存数据
 
 ```java
 DirectByteBuffer(int cap) {                   // package-private
@@ -1000,7 +1000,7 @@ DirectByteBuffer(int cap) {                   // package-private
 }
 ```
 
-可以看到在构造方法中，是直接通过Unsafe类来申请足够的堆外内存保存数据，那么当我们不使用此缓冲区时，内存会被如何清理呢？我们来看看这个Cleaner：
+当不使用此缓冲区时，内存会被如何清理吗？看看这个Cleaner：
 
 ```java
 public class Cleaner extends PhantomReference<Object>{ //继承自鬼引用，也就是说此对象会存放一个没有任何引用的对象
@@ -1052,7 +1052,7 @@ public class Cleaner extends PhantomReference<Object>{ //继承自鬼引用，�
     }
 ```
 
-那么我们先来看看具体的清理程序在做些什么，Deallocator是在直接缓冲区中声明的：
+具体的清理程序Deallocator是在直接缓冲区中声明的：
 
 ```java
 private static class Deallocator implements Runnable {
@@ -1082,7 +1082,9 @@ private static class Deallocator implements Runnable {
 }
 ```
 
-好了，现在我们可以明确在清理的时候实际上也是调用Unsafe类进行内存释放操作，那么，这个清理操作具体是在什么时候进行的呢？首先我们要明确，如果是普通的堆缓冲区，由于使用的数组，那么一旦此对象没有任何引用时，就随时都会被GC给回收掉，但是现在是堆外内存，只能我们手动进行内存回收，那么当DirectByteBuffer也失去引用时，会不会触发内存回收呢？
+在清理的时候实际上也是调用Unsafe类进行内存释放操作。
+如果是普通的堆缓冲区，由于使用的数组，那么一旦此对象没有任何引用时，就随时都会被GC给回收掉。
+但是现在是堆外内存，只能手动进行内存回收，那么当DirectByteBuffer也失去引用时，会不会触发内存回收呢？
 
 答案是可以的，还记得我们刚刚看到Cleaner是PhantomReference的子类吗，而DirectByteBuffer是被鬼引用的对象，而具体的清理操作是Cleaner类的clean方法，莫非这两者有什么联系吗？
 
@@ -1239,15 +1241,14 @@ DirectByteBuffer(DirectBuffer db,         // 这里给的db是进行复制操作
 
 ***
 
-## 通道
+# 通道
 
-前面我们学习了NIO的基石——缓冲区，那么缓冲区具体用在什么地方呢，在本板块我们学习通道之后，相信各位就能知道了。那么，什么是通道呢？
+传统IO通过流进行传输，数据会源源不断从流中传出
+而在NIO中，数据是放在缓冲区中进行管理，再使用通道将缓冲区中的数据传输到目的地。
 
-在传统IO中，我们都是通过流进行传输，数据会源源不断从流中传出；而在NIO中，数据是放在缓冲区中进行管理，再使用通道将缓冲区中的数据传输到目的地。
+## 通道接口层次
 
-### 通道接口层次
-
-通道的根基接口是`Channel`，所以的派生接口和类都是从这里开始的，我们来看看它定义了哪些基本功能：
+通道的根基接口是`Channel`，所有的派生接口和类都是从这里开始的：
 
 ```java
 public interface Channel extends Closeable {
@@ -1259,7 +1260,7 @@ public interface Channel extends Closeable {
 }
 ```
 
-我们接着来看看它的一些子接口，首先是最基本的读写操作：
+子接口：ReadableByteChannel和WritableByteChannel，读写操作
 
 ```JAVA
 public interface ReadableByteChannel extends Channel {
@@ -1275,7 +1276,7 @@ public interface WritableByteChannel extends Channel {
 }
 ```
 
-有了读写功能后，最后整合为了一个ByteChannel接口：
+最后整合为了一个ByteChannel接口：
 
 ```java
 public interface ByteChannel extends ReadableByteChannel, WritableByteChannel{
@@ -1306,11 +1307,11 @@ public interface SeekableByteChannel extends ByteChannel {
 }
 ```
 
-接着我们来看，除了读写之外，Channel还可以具有响应中断的能力：
+除了读写之外，Channel还可以具有响应中断的能力：
 
 ```java
 public interface InterruptibleChannel extends Channel {
-  	//当其他线程调用此方法时，在此通道上处于阻塞状态的线程会直接抛出 AsynchronousCloseException 异常
+    //当其他线程调用此方法时，在此通道上处于阻塞状态的线程会直接抛出 AsynchronousCloseException 异常
     public void close() throws IOException;
 }
 ```
@@ -1318,9 +1319,9 @@ public interface InterruptibleChannel extends Channel {
 ```java
 //这是InterruptibleChannel的抽象实现，完成了一部分功能
 public abstract class AbstractInterruptibleChannel implements Channel, InterruptibleChannel {
-		//加锁关闭操作用到
+    //加锁关闭操作用到
     private final Object closeLock = new Object();
-  	//当前Channel的开启状态
+    //当前Channel的开启状态
     private volatile boolean open = true;
 
     protected AbstractInterruptibleChannel() { }
@@ -1360,10 +1361,13 @@ public abstract class AbstractInterruptibleChannel implements Channel, Interrupt
 
 ![image-20230306173207144](https://s2.loli.net/2023/03/06/ZywX8BgGMJfWNSK.png)
 
-这样，我们就大致了解了一下通道相关的接口定义，那么我来看看具体是如何如何使用的。
+这样，就大致了解了一下通道相关的接口定义了。
 
-比如现在我们要实现从输入流中读取数据然后打印出来，那么之前传统IO的写法：
+## 简单用一下
 
+>实现从输入流中读取数据然后打印出来
+
+传统IO的写法：
 ```java
 public static void main(String[] args) throws IOException {
   	//数组创建好，一会用来存放从流中读取到的数据
@@ -1372,18 +1376,20 @@ public static void main(String[] args) throws IOException {
     InputStream in = System.in;
     while (true) {
         int len;
-        while ((len = in.read(data)) >= 0) {  //将输入流中的数据一次性读取到数组中
-            System.out.print("读取到一批数据："+new String(data, 0, len));  //读取了多少打印多少
+        //将输入流中的数据一次性读取到数组中
+        while ((len = in.read(data)) >= 0) {  
+            //读取了多少打印多少
+            System.out.print("读取到一批数据："+new String(data, 0, len));  
         }
     }
 }
 ```
 
-而现在我们使用通道之后：
+使用通道之后：
 
 ```java
 public static void main(String[] args) throws IOException {
-  	//缓冲区创建好，一会就靠它来传输数据
+    //缓冲区创建好，一会就靠它来传输数据
     ByteBuffer buffer = ByteBuffer.allocate(10);
     //将System.in作为输入源，一会Channel就可以从这里读取数据，然后通过缓冲区装载一次性传递数据
     ReadableByteChannel readChannel = Channels.newChannel(System.in);
@@ -1400,29 +1406,39 @@ public static void main(String[] args) throws IOException {
 }
 ```
 
-乍一看，好像感觉也没啥区别，不就是把数组换成缓冲区了吗，效果都是一样的，数据也是从Channel中读取得到，并且通过缓冲区进行数据装载然后得到结果，但是，Channel不像流那样是单向的，它就像它的名字一样，一个通道可以从一端走到另一端，也可以从另一端走到这一端，我们后面进行介绍。
+乍一看，好像也没啥区别，就是把存放数据的数组换成缓冲区，数据从流中获取换成从Channel中读取得到，效果都是一样的
 
-### 文件传输FileChannel
+但是，Channel不像流那样是单向的，一个通道可以从一端走到另一端，也可以从另一端走到这一端。
 
-前面我们介绍了通道的基本情况，这里我们就来尝试实现一下文件的读取和写入，在传统IO中，文件的写入和输出都是依靠FileOutputStream和FileInputStream来完成的：
+## 文件传输FileChannel
+
+传统IO中，文件的写入和输出都是依靠FileOutputStream和FileInputStream来完成的：
 
 ```java
 public static void main(String[] args) throws IOException {
     try(FileOutputStream out = new FileOutputStream("test.txt");
         FileInputStream in = new FileInputStream("test.txt")){
         String data = "伞兵一号卢本伟准备就绪！";
-        out.write(data.getBytes());   //向文件的输出流中写入数据，也就是把数据写到文件中
+        //向文件的输出流中写入数据，也就是把数据写到文件中
+        out.write(data.getBytes());   
         out.flush();
 
         byte[] bytes = new byte[in.available()];
-        in.read(bytes);    //从文件的输入流中读取文件的信息
+        //从文件的输入流中读取文件的信息
+        in.read(bytes);    
         System.out.println(new String(bytes));
     }
 }
 ```
 
-而现在，我们只需要通过一个FileChannel就可以完成这两者的操作，获取文件通道的方式有以下几种：
+NIO中，FileChannel可以完成这两者的操作，获取文件通道的主要方式有两种
 
+### 通过流获取通道
+
+>输入流生成的Channel不支持写操作，输出流生成的Channel不支持读操作。
+所以说本质上还是保持着输入输出流的特性，如果想让FileChannel兼备读写操作，需要用到第二种获取文件通道的方式
+
+输入流获取的文件通道读取是没有任何问题的
 ```java
 public static void main(String[] args) throws IOException {
     //1. 直接通过输入或输出流获取对应的通道
@@ -1440,7 +1456,7 @@ public static void main(String[] args) throws IOException {
 }
 ```
 
-可以看到通过输入流获取的文件通道读取是没有任何问题的，但是写入操作：
+但是写入操作会抛异常
 
 ```java
 public static void main(String[] args) throws IOException {
@@ -1453,10 +1469,7 @@ public static void main(String[] args) throws IOException {
 }
 ```
 
-![image-20230306173252329](https://s2.loli.net/2023/03/06/UVQ8gIpHyGrveMO.png)
-
-直接报错，说明只支持读取操作，那么输出流呢？
-
+输出流获取的文件通道写入操作是没有任何问题的
 ```java
 public static void main(String[] args) throws IOException {
     //1. 直接通过输入或输出流获取对应的通道
@@ -1468,7 +1481,7 @@ public static void main(String[] args) throws IOException {
 }
 ```
 
-可以看到能够正常进行写入，但是读取呢？
+但是读取操作会抛异常
 
 ```java
 public static void main(String[] args) throws IOException {
@@ -1487,16 +1500,14 @@ public static void main(String[] args) throws IOException {
 }
 ```
 
-![image-20230306173302648](https://s2.loli.net/2023/03/06/isrDoy5pwRPxMuK.png)
-
-可以看到输出流生成的Channel又不支持读取，所以说本质上还是保持着输入输出流的特性，但是之前不是说Channel又可以输入又可以输出吗？这里我们来看看第二种方式：
+### 通过RandomAccessFile创建通道
 
 ```java
 //RandomAccessFile能够支持文件的随机访问，并且实现了数据流
 public class RandomAccessFile implements DataOutput, DataInput, Closeable {
 ```
 
-我们可以通过RandomAccessFile来创建通道：
+通过RandomAccessFile来创建通道：
 
 ```java
 public static void main(String[] args) throws IOException {
@@ -1512,8 +1523,8 @@ public static void main(String[] args) throws IOException {
     }
 }
 ```
-
-现在我们来测试一下它的读写操作：
+***
+测试一下它的读写操作：
 
 ```java
 public static void main(String[] args) throws IOException {
@@ -1524,12 +1535,15 @@ public static void main(String[] args) throws IOException {
       rws  每当进行写操作，同步的刷新到磁盘，刷新内容和元数据
       rwd  每当进行写操作，同步的刷新到磁盘，刷新内容
      */
-    try(RandomAccessFile f = new RandomAccessFile("test.txt", "rw");  //这里设定为支持读写，这样创建的通道才能具有这些功能
-        FileChannel channel = f.getChannel()){   //通过RandomAccessFile创建一个通道
+     //这里设定为支持读写，这样创建的通道才能具有这些功能
+    try(RandomAccessFile f = new RandomAccessFile("test.txt", "rw"); 
+        //通过RandomAccessFile创建一个通道
+        FileChannel channel = f.getChannel()){   
         channel.write(ByteBuffer.wrap("伞兵二号马飞飞准备就绪！".getBytes()));
-
-        System.out.println("写操作完成之后文件访问位置："+channel.position());  //注意读取也是从现在的位置开始
-        channel.position(0);  //需要将位置变回到最前面，这样下面才能从文件的最开始进行读取
+        //注意读取也是从现在的位置开始
+        System.out.println("写操作完成之后文件访问位置："+channel.position());  
+        //需要将位置变回到最前面，这样下面才能从文件的最开始进行读取
+        channel.position(0);  
 
         ByteBuffer buffer = ByteBuffer.allocate(128);
         channel.read(buffer);
@@ -1539,10 +1553,8 @@ public static void main(String[] args) throws IOException {
     }
 }
 ```
-
-可以看到，一个FileChannel既可以完成文件读取，也可以完成文件的写入。
-
-除了基本的读写操作，我们也可以直接对文件进行截断：
+***
+还可以直接对文件进行截断：
 
 ```java
 public static void main(String[] args) throws IOException {
@@ -1558,10 +1570,10 @@ public static void main(String[] args) throws IOException {
     }
 }
 ```
+***
 
-可以看到文件的内容直接被截断了，文件内容就只剩一半了。
-
-当然，如果我们要进行文件的拷贝，也是很方便的，只需要使用通道就可以，比如我们现在需要将一个通道的数据写入到另一个通道，就可以直接使用transferTo方法：
+拷贝文件很方便
+只需要使用通道，比如需要将一个通道的数据写入到另一个通道，就可以直接使用transferTo方法：
 
 ```java
 public static void main(String[] args) throws IOException {
@@ -1573,8 +1585,6 @@ public static void main(String[] args) throws IOException {
     }
 }
 ```
-
-可以看到执行后，文件的内容全部被复制到另一个文件了。
 
 当然，反向操作也是可以的：
 
@@ -1588,8 +1598,8 @@ public static void main(String[] args) throws IOException {
     }
 }
 ```
-
-当我们要编辑某个文件时，通过使用MappedByteBuffer类，可以将其映射到内存中进行编辑，编辑的内容会同步更新到文件中：
+***
+要编辑某个文件时，通过使用MappedByteBuffer类，可以将其映射到内存中进行编辑，编辑的内容会同步更新到文件中：
 
 ```java
 //注意一定要是可写的，不然无法进行修改操作
@@ -1611,51 +1621,41 @@ try(RandomAccessFile f = new RandomAccessFile("test.txt", "rw");
 }
 ```
 
-可以看到，文件的某一个区域已经被我们修改了，并且这里实际上使用的就是DirectByteBuffer直接缓冲区，效率还是很高的。
+这里实际上使用的就是DirectByteBuffer直接缓冲区，效率很高。
 
-### 文件锁FileLock
+## 文件锁FileLock
 
-我们可以创建一个跨进程文件锁来防止多个进程之间的文件争抢操作（注意这里是进程，不是线程）FileLock是文件锁，它能保证同一时间只有一个进程（程序）能够修改它，或者都只可以读，这样就解决了多进程间的同步文件，保证了安全性。但是需要注意的是，它进程级别的，不是线程级别的，他可以解决多个进程并发访问同一个文件的问题，但是它不适用于控制同一个进程中多个线程对一个文件的访问。
+跨进程文件锁可以防止多个进程之间的文件争抢操作（注意这里是进程，不是线程）
+FileLock文件锁，它能保证同一时间只有一个进程（程序）能够修改它，或者都只可以读，这样就解决了多进程间的同步文件，保证了安全性。
+但是需要注意的是，它进程级别的，不是线程级别的，他可以解决多个进程并发访问同一个文件的问题，但是它不适用于控制同一个进程中多个线程对一个文件的访问。
 
-那么我们来看看如何使用文件锁：
+>进程对文件加独占锁后，当前进程对文件可读可写，独占此文件，其它进程是不能读该文件进行读写操作的。
+>
+>进程对文件加共享锁后，进程可以对文件进行读操作，但是无法进行写操作，共享锁可以被多个进程添加，但是只要存在共享锁，就不能添加独占锁。
+
+### lock()加独占锁
 
 ```java
 public static void main(String[] args) throws IOException, InterruptedException {
-  	//创建RandomAccessFile对象，并拿到Channel
+    //创建RandomAccessFile对象，并拿到Channel
     RandomAccessFile f = new RandomAccessFile("test.txt", "rw");
     FileChannel channel = f.getChannel();
     System.out.println(new Date() + " 正在尝试获取文件锁...");
-  	//接着我们直接使用lock方法进行加锁操作（如果其他进程已经加锁，那么会一直阻塞在这里）
-  	//加锁操作支持对文件的某一段进行加锁，比如这里就是从0开始后的6个字节加锁，false代表这是一把独占锁
-  	//范围锁甚至可以提前加到一个还未写入的位置上
+    //接着直接使用lock方法进行加锁操作（如果其他进程已经加锁，那么会一直阻塞在这里）
+    //加锁操作支持对文件的某一段进行加锁，比如这里就是从0开始后的6个字节加锁，false代表这是一把独占锁
+    //范围锁甚至可以提前加到一个还未写入的位置上
     FileLock lock = channel.lock(0, 6, false);
     System.out.println(new Date() + " 已获取到文件锁！");
     Thread.sleep(5000);   //假设要处理5秒钟
     System.out.println(new Date() + " 操作完毕，释放文件锁！");
   	
-  	//操作完成之后使用release方法进行锁释放
+    //操作完成之后使用release方法进行锁释放
     lock.release();
 }
 ```
 
-有关共享锁和独占锁：
-
-* 进程对文件加独占锁后，当前进程对文件可读可写，独占此文件，其它进程是不能读该文件进行读写操作的。
-* 进程对文件加共享锁后，进程可以对文件进行读操作，但是无法进行写操作，共享锁可以被多个进程添加，但是只要存在共享锁，就不能添加独占锁。
-
-现在我们来启动两个进程试试看，我们需要在IDEA中配置一下两个启动项：
-
-![image-20230306173325374](https://s2.loli.net/2023/03/06/hJuSpsEeZ1QwLYv.png)
-
-现在我们依次启动它们：
-
-![image-20230306173336024](https://s2.loli.net/2023/03/06/4GsaTA2nQ3hlLW8.png)
-
-![image-20230306173344360](https://s2.loli.net/2023/03/06/UmCOxBoMzlg9vFN.png)
-
-可以看到确实是两个进程同一时间只能有一个进行访问，而另一个需要等待锁释放。
-
-那么如果我们申请的是文件的不同部分呢？
+如果申请的是文件的不同部分
+两个进程可以同时进行加锁操作，因为它们锁的是不同的段落。
 
 ```java
 //其中一个进程锁 0 - 5
@@ -1664,9 +1664,7 @@ FileLock lock = channel.lock(0, 6, false);
 FileLock lock = channel.lock(6, 6, false);
 ```
 
-可以看到，两个进程这时就可以同时进行加锁操作了，因为它们锁的是不同的段落。
-
-那么要是交叉呢？
+如果申请的文件有交叉部分，会出现阻塞
 
 ```java
 //其中一个进程锁 0 - 5
@@ -1675,19 +1673,19 @@ FileLock lock = channel.lock(0, 6, false);
 FileLock lock = channel.lock(3, 6, false);
 ```
 
-可以看到交叉的情况下也是会出现阻塞的。
+### lock()加共享锁
 
-接着我们来看看共享锁，共享锁允许多个进程同时加锁，但是不能进行写操作：
+共享锁允许多个进程同时加锁，但是不能进行写操作：
 
 ```java
 public static void main(String[] args) throws IOException, InterruptedException {
         RandomAccessFile f = new RandomAccessFile("test.txt", "rw");
         FileChannel channel = f.getChannel();
         System.out.println(new Date() + " 正在尝试获取文件锁...");
-        //现在使用共享锁
+        //true表示使用共享锁
         FileLock lock = channel.lock(0, Long.MAX_VALUE, true);
         System.out.println(new Date() + " 已获取到文件锁！");
-  			//进行写操作
+        //进行写操作，会抛出异常
         channel.write(ByteBuffer.wrap(new Date().toString().getBytes()));
        
         System.out.println(new Date() + " 操作完毕，释放文件锁！");
@@ -1696,13 +1694,8 @@ public static void main(String[] args) throws IOException, InterruptedException 
     }
 ```
 
-当我们进行写操作时：
-
-![image-20230306173358569](https://s2.loli.net/2023/03/06/lJu1EaoOzQhXwHB.png)
-
-可以看到直接抛出异常，说另一个程序已锁定文件的一部分，进程无法访问（某些系统或是环境实测无效，比如UP主的arm架构MacOS就不生效，这个异常是在Windows环境下运行得到的）
-
-当然，我们也可以测试一下多个进行同时加共享锁：
+测试一下多个进程同时加共享锁：
+都能拿到锁
 
 ```java
 public static void main(String[] args) throws IOException, InterruptedException {
@@ -1719,12 +1712,12 @@ public static void main(String[] args) throws IOException, InterruptedException 
 }
 ```
 
-可以看到结果是多个进程都能加共享锁：
+### tryLock()加锁
 
-![image-20230306173408914](https://s2.loli.net/2023/03/06/34puXxErM5QG2fq.png)
+除了直接使用`lock()`方法进行加锁之外，也可以使用`tryLock()`方法以非阻塞方式获取文件锁，但是如果获取锁失败会得到null：
 
-当然，除了直接使用`lock()`方法进行加锁之外，我们也可以使用`tryLock()`方法以非阻塞方式获取文件锁，但是如果获取锁失败会得到null：
-
+两个进程都去尝试获取独占锁
+成功加锁的进程获得了对应的锁对象，另一个进程直接得到的是`null`
 ```java
 public static void main(String[] args) throws IOException, InterruptedException {
     RandomAccessFile f = new RandomAccessFile("test.txt", "rw");
@@ -1739,19 +1732,7 @@ public static void main(String[] args) throws IOException, InterruptedException 
 }
 ```
 
-可以看到，两个进程都去尝试获取独占锁：
-
-![image-20230306173431641](https://s2.loli.net/2023/03/06/CpxsIEaThjPBNY6.png)
-
-![image-20230306173440947](https://s2.loli.net/2023/03/06/sbmrtvkESa8cZlL.png)
-
-第一个成功加锁的进程获得了对应的锁对象，而第二个进程直接得到的是`null`。
-
-到这里，有关文件锁的相关内容就差不多了。
-
-***
-
-## 多路复用网络通信
+# 多路复用网络通信
 
 前面我们已经介绍了NIO框架的两大核心：Buffer和Channel，我们接着来看看最后一个内容。
 
