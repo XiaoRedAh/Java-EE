@@ -471,7 +471,7 @@ public static void main(String[] args) {
 }
 ```
 
-### 其他操作
+## 其他操作
 
 * `public abstract IntBuffer compact()`   -   压缩缓冲区，由具体实现类实现
 * `public IntBuffer duplicate()`   -   复制缓冲区，会直接创建一个新的数据相同的缓冲区
@@ -641,9 +641,11 @@ public final Buffer clear() {
 }
 ```
 
-### 缓冲区比较
+## 缓冲区比较
 
-缓冲区之间是可以进行比较的，我们可以看到equals方法和compareTo方法都是被重写了的，我们首先来看看`equals`方法，注意，它是判断两个缓冲区剩余的内容是否一致：
+equals方法和compareTo方法都是被重写了的，缓冲区之间可以进行比较
+
+**`equals`方法：判断两个缓冲区剩余的内容是否一致**：
 
 ```java
 public boolean equals(Object ob) {
@@ -672,7 +674,7 @@ private static boolean equals(int x, int y) {
 }
 ```
 
-那么我们按照它的思路来验证一下：
+按照它的思路来验证一下：
 
 ```java
 public static void main(String[] args) {
@@ -686,11 +688,14 @@ public static void main(String[] args) {
 }
 ```
 
-可以看到结果就是我们所想的那样：
+结果：
+```
+false
+true
+```
 
-![image-20230306172945627](https://s2.loli.net/2023/03/06/Nf4WRSpQZUrHXj7.png)
-
-那么我们接着来看比较，`compareTo`方法，它实际上是`Comparable`接口提供的方法，它实际上比较的也是pos开始剩余的内容：
+***
+**`compareTo`方法：是`Comparable`接口提供的方法，实际上比较的也是pos开始剩余的内容**：
 
 ```java
 public int compareTo(IntBuffer that) {
@@ -715,18 +720,13 @@ private static int compare(int x, int y) {
 }
 ```
 
-这里我们就不多做介绍了。
+## 只读缓冲区
 
-### 只读缓冲区
+只读缓冲区只能进行读操作，而不允许进行写操作。
 
-接着我们来看看只读缓冲区，只读缓冲区就像其名称一样，它只能进行读操作，而不允许进行写操作。
-
-那么我们怎么创建只读缓冲区呢？
-
-* `public abstract IntBuffer asReadOnlyBuffer();`   -   基于当前缓冲区生成一个只读的缓冲区。
-
-我们来看看此方法的具体实现：
-
+创建只读缓冲区：
+`public abstract IntBuffer asReadOnlyBuffer();`   -   基于当前缓冲区生成一个只读的缓冲区。
+此方法的具体实现：
 ```java
 public IntBuffer asReadOnlyBuffer() {
     return new HeapIntBufferR(hb,    //注意这里并不是直接创建了HeapIntBuffer，而是HeapIntBufferR，并且直接复制的hb数组
@@ -738,11 +738,13 @@ public IntBuffer asReadOnlyBuffer() {
 }
 ```
 
-那么这个HeapIntBufferR类跟我们普通的HeapIntBuffer有什么不同之处呢？
+这个HeapIntBufferR类实际上是继承自HeapIntBuffer
 
 ![image-20230306173005107](https://s2.loli.net/2023/03/06/4XiVxHTbApPmkMK.png)
 
-可以看到它是继承自HeapIntBuffer的，那么我们来看看它的实现有什么不同：
+***
+**HeapIntBufferR的构造函数**：
+除了直接调用父类的构造方法外，还会将`isReadOnly`标记修改为true
 
 ```java
 protected HeapIntBufferR(int[] buf,
@@ -754,7 +756,9 @@ protected HeapIntBufferR(int[] buf,
 }
 ```
 
-可以看到在其构造方法中，除了直接调用父类的构造方法外，还会将`isReadOnly`标记修改为true，我们接着来看put操作有什么不同之处：
+***
+**HeapIntBufferR的put操作**：
+put方法全部凉凉，只要调用就会直接抛ReadOnlyBufferException异常
 
 ```java
 public boolean isReadOnly() {
@@ -778,49 +782,34 @@ public IntBuffer put(IntBuffer src) {
 }
 ```
 
-可以看到所有的put方法全部凉凉，只要调用就会直接抛出ReadOnlyBufferException异常。但是其他get方法依然没有进行重写，也就是说get操作还是可以正常使用的，但是只要是写操作就都不行：
+get方法依然没有进行重写，也就是说get操作还是可以正常使用的。
 
-```java
-public static void main(String[] args) {
-    IntBuffer buffer = IntBuffer.wrap(new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 0});
-    IntBuffer readBuffer = buffer.asReadOnlyBuffer();
+## ByteBuffer和CharBuffer
 
-    System.out.println(readBuffer.isReadOnly());
-    System.out.println(readBuffer.get());
-    readBuffer.put(0, 666);
-}
-```
+ByteBuffer底层存放的是很多单个byte字节，所以会有更多的玩法
+CharBuffer是一系列字节，也有很多便捷操作
 
-可以看到结果为：
-
-![image-20230306173024857](https://s2.loli.net/2023/03/06/uVi36nHvbJtsQEF.png)
-
-这就是只读状态下的缓冲区。
-
-### ByteBuffer和CharBuffer
-
-通过前面的学习，我们基本上已经了解了缓冲区的使用，但是都是基于IntBuffer进行讲解，现在我们来看看另外两种基本类型的缓冲区ByteBuffer和CharBuffer，因为ByteBuffer底层存放的是很多单个byte字节，所以会有更多的玩法，同样CharBuffer是一系列字节，所以也有很多便捷操作。
-
-我们先来看看ByteBuffer，我们可以直接点进去看：
-
+***
+**ByteBuffer**
+如果使用堆缓冲区子类实现，那么依然是一个`byte[]`的形式保存数据。
 ```java
 public abstract class ByteBuffer extends Buffer implements Comparable<ByteBuffer> {
-    final byte[] hb;                  // Non-null only for heap buffers
+    final byte[] hb;// Non-null only for heap buffers
     final int offset;
-    boolean isReadOnly;                 // Valid only for heap buffers
+    boolean isReadOnly; // Valid only for heap buffers
   	....
 ```
 
-可以看到如果也是使用堆缓冲区子类实现，那么依然是一个`byte[]`的形式保存数据。我们来尝试使用一下：
-
+例一：
 ```java
 public static void main(String[] args) {
     ByteBuffer buffer = ByteBuffer.allocate(10);
-    //除了直接丢byte进去之外，我们也可以丢其他的基本类型（注意容量消耗）
-    buffer.putInt(Integer.MAX_VALUE);  //丢个int的最大值进去，注意一个int占4字节
+    //除了直接丢byte进去之外，也可以丢其他的基本类型（注意容量消耗）
+    //丢个int的最大值进去，注意一个int占4字节
+    buffer.putInt(Integer.MAX_VALUE);  
     System.out.println("当前缓冲区剩余字节数："+buffer.remaining());  //只剩6个字节了
 
-    //我们来尝试读取一下，记得先翻转
+    //尝试读取一下，记得先翻转
     buffer.flip();
     while (buffer.hasRemaining()) {
         System.out.println(buffer.get());   //一共四个字节
@@ -828,19 +817,19 @@ public static void main(String[] args) {
 }
 ```
 
-最后的结果为：
+结果：
+第一个byte为127、然后三个都是-1
+转换成二进制补码，第一个字节是01111111，而后续字节是11111111，把它们拼接在一起，`01111111 11111111 11111111 11111111` 转换为十进制就是`2147483647`，也就是int的最大值。
 
-![image-20230306173044493](https://s2.loli.net/2023/03/06/16zaudJ9WvGybsE.png)
+```
+当前缓冲区剩余字节数：6
+127
+-1
+-1
+-1
+```
 
-可以看到第一个byte为127、然后三个都是-1，我们来分析一下：
-
-* `127` 转换为二进制补码形式就是 `01111111`，而`-1`转换为二进制补码形式为`11111111`
-
-那也就是说，第一个字节是01111111，而后续字节就是11111111，把它们拼接在一起：
-
-* 二进制补码表示`01111111 11111111 11111111 11111111` 转换为十进制就是`2147483647`，也就是int的最大值。
-
-那么根据我们上面的推导，各位能否计算得到下面的结果呢？
+例二
 
 ```java
 public static void main(String[] args) {
@@ -851,40 +840,42 @@ public static void main(String[] args) {
     buffer.put((byte) -1);
 
     buffer.flip();   //翻转一下
-    System.out.println(buffer.getInt());  //以int形式获取，那么就是一次性获取4个字节
+    //以int形式获取，那么就是一次性获取4个字节
+    System.out.println(buffer.getInt());  
 }
 ```
+结果
+二进制补码的形式表示为：`00000000 00000000 00000001 11111111`，转换为十进制就是：256 + 255 = 511
 
-经过上面的计算，得到的结果就是：
-
-* 上面的数据以二进制补码的形式表示为：`00000000 00000000 00000001 11111111`
-* 将其转换为十进制那么就是：256 + 255 = 511
-
-好吧，再来个魔鬼问题，把第一个换成1呢：`10000000 00000000 00000001 11111111`，自己算。
-
-我们接着来看看CharBuffer，这种缓冲区实际上也是保存一大堆char类型的数据：
+***
+**CharBuffer**
+这种缓冲区实际上也是保存一大堆char类型的数据：
 
 ```java
 public static void main(String[] args) {
     CharBuffer buffer = CharBuffer.allocate(10);
-    buffer.put("lbwnb");  //除了可以直接丢char之外，字符串也可以一次性丢进入
+    //除了可以直接丢char之外，字符串也可以一次性丢进入
+    buffer.put("lbwnb");  
     System.out.println(Arrays.toString(buffer.array()));
 }
 ```
 
-但是正是得益于char数组，它包含了很多的字符串操作，可以一次性存放一整个字符串。我们甚至还可以将其当做一个String来进行处理：
+得益于char数组，它包含了很多的字符串操作，可以一次性存放一整个字符串。甚至还可以将其当做一个String来进行处理：
 
 ```java
 public static void main(String[] args) {
     CharBuffer buffer = CharBuffer.allocate(10);
     buffer.put("lbwnb");
-    buffer.append("!");   //可以像StringBuilder一样使用append来继续添加数据
-  
-  	System.out.println("剩余容量："+buffer.remaining());  //已经用了6个字符了
+    //可以像StringBuilder一样使用append来继续添加数据
+    buffer.append("!");   
+    //已经用了6个字符了
+    System.out.println("剩余容量："+buffer.remaining());  
 
     buffer.flip();
-    System.out.println("整个字符串为："+buffer);   //直接将内容转换为字符串
-    System.out.println("第3个字符是："+buffer.charAt(2));  //直接像String一样charAt
+    //直接将内容转换为字符串
+    System.out.println("整个字符串为："+buffer);  
+    //直接像String一样charAt 
+    System.out.println("第3个字符是："+buffer.charAt(2));  
 
     buffer   //也可以转换为IntStream进行操作
             .chars()
@@ -893,25 +884,19 @@ public static void main(String[] args) {
 }
 ```
 
-当然除了一些常规操作之外，我们还可以直接将一个字符串作为参数创建：
+还可以直接将一个字符串作为参数创建：
 
 ```java
 public static void main(String[] args) {
     //可以直接使用wrap包装一个字符串，但是注意，包装出来之后是只读的
     CharBuffer buffer = CharBuffer.wrap("收藏等于学会~");
     System.out.println(buffer);
-
-    buffer.put("111");  //这里尝试进行一下写操作
+    //尝试进行写操作，会抛出异常
+    buffer.put("111");  
 }
 ```
 
-可以看到结果也是我们预料中的：
-
-![image-20230306173059478](https://s2.loli.net/2023/03/06/yBxj2DrCcYAuWdH.png)
-
-对于这两个比较特殊的缓冲区，我们就暂时讲解到这里。
-
-### 直接缓冲区
+## 直接缓冲区
 
 **注意：**推荐学习完成JVM篇再来学习这一部分。
 
