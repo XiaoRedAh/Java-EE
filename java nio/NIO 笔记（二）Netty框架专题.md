@@ -436,9 +436,8 @@ public static void main(String[] args) {
 
 ## Channel详解
 
-在学习NIO时，我们就已经接触到Channel了，我们可以通过通道来进行数据的传输，并且通道支持双向传输。
-
-而在Netty中，也有对应的Channel类型：
+Netty中，也有对应的Channel类型：
+Netty中的Channel相比NIO的功能丰富很多。Netty中的Channel所有的IO操作都是异步的，并不是在当前线程同步运行，方法调用之后就直接返回了，通过ChannelFuture获取操作的结果
 
 ```java
 public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparable<Channel> {
@@ -463,15 +462,13 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
     Channel flush();   //刷新，基操
 }
 ```
+### ChannelOutboundInvoker
 
-可以看到，Netty中的Channel相比NIO功能就多得多了。Netty中的Channel主要特点如下：
-
-* 所有的IO操作都是异步的，并不是在当前线程同步运行，方法调用之后就直接返回了，那怎么获取操作的结果呢？还记得我们在前面JUC篇教程中学习的Future吗，没错，这里的ChannelFuture也是干这事的。
-
-我们可以来看一下Channel接口的父接口ChannelOutboundInvoker接口，这里面定义了大量的I/O操作：
-
+Channel接口的父接口ChannelOutboundInvoker接口
+里面定义了大量的I/O操作：
 ```java
-public interface ChannelOutboundInvoker {   //通道出站调用（包含大量的网络出站操作，比如写）
+//通道出站调用（包含大量的网络出站操作，比如写）
+public interface ChannelOutboundInvoker {   
     ChannelFuture bind(SocketAddress var1);  //Socket绑定、连接、断开、关闭等操作
     ChannelFuture connect(SocketAddress var1);
     ChannelFuture connect(SocketAddress var1, SocketAddress var2);
@@ -500,7 +497,7 @@ public interface ChannelOutboundInvoker {   //通道出站调用（包含大量�
 }
 ```
 
-当然它还实现了AttributeMap接口，其实有点类似于Session那种感觉，我们可以添加一些属性之类的：
+它还实现了AttributeMap接口，有点类似于Session那种感觉，可以添加一些属性之类的：
 
 ```java
 public interface AttributeMap {
@@ -510,9 +507,11 @@ public interface AttributeMap {
 }
 ```
 
-我们了解了Netty底层的Channel之后，我们接着来看ChannelHandler，既然现在有了通道，那么怎么进行操作呢？我们可以将需要处理的事情放在ChannelHandler中，ChannelHandler充当了所有入站和出站数据的应用程序逻辑的容器，实际上就是我们之前Reactor模式中的Handler，全靠它来处理读写操作。
+### ChannelHandler
 
-不过这里不仅仅是一个简单的ChannelHandler在进行处理，而是一整套流水线，我们之后会介绍ChannelPipeline。
+ChannelHandler实际上就是之前Reactor模式中的Handler，将需要处理的事情放在ChannelHandler中，ChannelHandler充当所有入站和出站数据的应用程序逻辑的容器，全靠它来处理读写操作。
+
+>不仅仅是一个简单的ChannelHandler在进行处理，而是一整套流水线，比如ChannelPipeline。
 
 比如我们上面就是使用了ChannelInboundHandlerAdapter抽象类，它是ChannelInboundHandler接口的实现，用于处理入站数据，可以看到我们实际上就是通过重写对应的方法来进行处理，这些方法会在合适的时间被调用：
 
@@ -529,8 +528,8 @@ channel.pipeline().addLast(new ChannelInboundHandlerAdapter(){
 });
 ```
 
-我们先从顶层接口开始看起：
-
+顶层接口ChannelHandler：
+这个接口的定义比较简单，就只有一些流水线相关的回调方法
 ```java
 public interface ChannelHandler {
   	//当ChannelHandler被添加到流水线中时调用
@@ -538,7 +537,7 @@ public interface ChannelHandler {
 		//当ChannelHandler从流水线中移除时调用
     void handlerRemoved(ChannelHandlerContext var1) throws Exception;
 
-    /** @deprecated 已过时那咱就不管了 */
+    /** @deprecated 已过时，不管了 */
     @Deprecated
     void exceptionCaught(ChannelHandlerContext var1, Throwable var2) throws Exception;
 
@@ -551,35 +550,37 @@ public interface ChannelHandler {
 }
 ```
 
-顶层接口的定义比较简单，就只有一些流水线相关的回调方法，我们接着来看下一级：
+下一级子接口ChannelInboundHandler：
 
 ```java
 //ChannelInboundHandler用于处理入站相关事件
 public interface ChannelInboundHandler extends ChannelHandler {
-  	//当Channel已经注册到自己的EventLoop上时调用，前面我们说了，一个Channel只会注册到一个EventLoop上，注册到EventLoop后，这样才会在发生对应事件时被通知。
+    //当Channel已经注册到自己的EventLoop上时调用，前面我们说了，一个Channel只会注册到一个EventLoop上，注册到EventLoop后，这样才会在发生对应事件时被通知。
     void channelRegistered(ChannelHandlerContext var1) throws Exception;
-		//从EventLoop上取消注册时
+    //从EventLoop上取消注册时
     void channelUnregistered(ChannelHandlerContext var1) throws Exception;
-		//当Channel已经处于活跃状态时被调用，此时Channel已经连接/绑定，并且已经就绪
+    //当Channel已经处于活跃状态时被调用，此时Channel已经连接/绑定，并且已经就绪
     void channelActive(ChannelHandlerContext var1) throws Exception;
-		//跟上面相反，不再活跃了，并且不在连接它的远程节点
+    //跟上面相反，不再活跃了，并且不在连接它的远程节点
     void channelInactive(ChannelHandlerContext var1) throws Exception;
-		//当从Channel读取数据时被调用，可以看到数据被自动包装成了一个Object（默认是ByteBuf）
+    //当从Channel读取数据时被调用，可以看到数据被自动包装成了一个Object（默认是ByteBuf）
     void channelRead(ChannelHandlerContext var1, Object var2) throws Exception;
-		//上一个读取操作完成后调用
+    //上一个读取操作完成后调用
     void channelReadComplete(ChannelHandlerContext var1) throws Exception;
-		//暂时不介绍
+    //暂时不介绍
     void userEventTriggered(ChannelHandlerContext var1, Object var2) throws Exception;
-		//当Channel的可写状态发生改变时被调用
+    //当Channel的可写状态发生改变时被调用
     void channelWritabilityChanged(ChannelHandlerContext var1) throws Exception;
-		//出现异常时被调用
+    //出现异常时被调用
     void exceptionCaught(ChannelHandlerContext var1, Throwable var2) throws Exception;
 }
 ```
 
-而我们上面用到的ChannelInboundHandlerAdapter实际上就是对这些方法实现的抽象类，相比直接用接口，我们可以只重写我们需要的方法，没有重写的方法会默认向流水线下一个ChannelHandler发送。
+之前用到的ChannelInboundHandlerAdapter实际上就是对这些方法实现的抽象类，相比直接用接口，可以只重写我们需要的方法，没有重写的方法会默认向流水线下一个ChannelHandler发送。
 
-我们来测试一下吧：
+***
+**测试ChannelInboundHandler**
+与ChannelInboundHandler对应的还有ChannelOutboundHandler用于处理出站相关的操作，这里就不进行演示了。
 
 ```java
 public class TestChannelHandler extends ChannelInboundHandlerAdapter {
@@ -603,7 +604,7 @@ public class TestChannelHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ByteBuf buf = (ByteBuf) msg;
         System.out.println(Thread.currentThread().getName()+" >> 接收到客户端发送的数据："+buf.toString(StandardCharsets.UTF_8));
-        //这次我们就直接使用ctx.alloc()来生成缓冲区
+        //这次就直接使用ctx.alloc()来生成缓冲区
         ByteBuf back = ctx.alloc().buffer();
         back.writeCharSequence("已收到！", StandardCharsets.UTF_8);
         ctx.writeAndFlush(back);
@@ -635,7 +636,7 @@ public static void main(String[] args) {
     bootstrap
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel.class)
-      			//ChannelInitializer是一个特殊的ChannelHandler，它本身不处理任何出站/入站事件，它的目的仅仅是完成Channel的初始化
+            //ChannelInitializer是一个特殊的ChannelHandler，它本身不处理任何出站/入站事件，它的目的仅仅是完成Channel的初始化
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 protected void initChannel(SocketChannel channel) {
@@ -647,14 +648,14 @@ public static void main(String[] args) {
 }
 ```
 
-现在我们启动服务器，让客户端来连接并发送一下数据试试看：
+启动服务器，让客户端来连接并发送数据：
 
 ![image-20230306174158886](https://s2.loli.net/2023/03/06/Tk7PyBU5cRil89L.png)
 
-可以看到ChannelInboundHandler的整个生命周期，首先是Channel注册成功，然后才会变成可用状态，接着就差不多可以等待客户端来数据了，当客户端主动断开连接时，会再次触发一次`channelReadComplete`，然后不可用，最后取消注册。
+可以看到，ChannelInboundHandler的整个生命周期：
+首先是Channel注册成功，然后才会变成可用状态，接着就差不多可以等待客户端来数据了，当客户端主动断开连接时，会再次触发一次`channelReadComplete`，然后不可用，最后取消注册。
 
-我们来测试一下出现异常的情况呢？
-
+发生异常时，会接着调用`exceptionCaught`方法：
 ```java
 public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     ByteBuf buf = (ByteBuf) msg;
@@ -678,17 +679,14 @@ public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws E
 }
 ```
 
-可以看到发生异常时，会接着调用`exceptionCaught`方法：
+***
+
+每一个Channel都对应一个ChannelPipeline（在Channel初始化时就被创建了）
 
 ![image-20230306174211952](https://s2.loli.net/2023/03/06/lSAjPCskUT9miNd.png)
 
-与ChannelInboundHandler对应的还有ChannelOutboundHandler用于处理出站相关的操作，这里就不进行演示了。
-
-我们接着来看看ChannelPipeline，每一个Channel都对应一个ChannelPipeline（在Channel初始化时就被创建了）
-
-![image-20230306174211952](https://s2.loli.net/2023/03/06/lSAjPCskUT9miNd.png)
-
-它就像是一条流水线一样，整条流水线上可能会有很多个Handler（包括入站和出站），整条流水线上的两端还有两个默认的处理器（用于一些预置操作和后续操作，比如释放资源等），我们只需要关心如何安排这些自定义的Handler即可，比如我们现在希望创建两个入站ChannelHandler，一个用于接收请求并处理，还有一个用于处理当前接收请求过程中出现的异常：
+它就像是一条流水线一样，整条流水线上可能会有很多个Handler（包括入站和出站），整条流水线上的两端还有两个默认的处理器（用于一些预置操作和后续操作，比如释放资源等）。
+我们只需要关心如何安排这些自定义的Handler即可，比如现在希望创建两个入站ChannelHandler，一个用于接收请求并处理，还有一个用于处理当前接收请求过程中出现的异常：
 
 ```java
 .childHandler(new ChannelInitializer<SocketChannel>() {   //注意，这里的SocketChannel不是我们NIO里面的，是Netty的
@@ -713,15 +711,16 @@ public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws E
 });
 ```
 
-那么它是如何运作的呢？实际上如果我们不在ChannelInboundHandlerAdapter中重写对应的方法，它会默认传播到流水线的下一个ChannelInboundHandlerAdapter进行处理，比如：
+如果不在ChannelInboundHandlerAdapter中重写对应的方法，上面自定义的ChannelHandler会默认传播到流水线的下一个ChannelInboundHandlerAdapter进行处理，比如：
 
 ```java
 public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-    ctx.fireExceptionCaught(cause);   //通过ChannelHandlerContext来向下传递，ChannelHandlerContext是在Handler添加进Pipeline中时就被自动创建的
+    //通过ChannelHandlerContext来向下传递，ChannelHandlerContext是在Handler添加进Pipeline中时就被自动创建的
+    ctx.fireExceptionCaught(cause);  
 }
 ```
 
-比如我们现在需要将一个消息在两个Handler中进行处理：
+将一个消息在两个Handler中进行处理：
 
 ```java
 @Override
@@ -745,7 +744,7 @@ protected void initChannel(SocketChannel channel) {
 }
 ```
 
-我们接着来看看出站相关操作，我们可以使用ChannelOutboundHandlerAdapter来完成：
+出站相关操作可以使用ChannelOutboundHandlerAdapter来完成：
 
 ```java
 @Override
@@ -780,7 +779,7 @@ protected void initChannel(SocketChannel channel) {
 }
 ```
 
-现在我们来试试看，搞两个出站的Handler，验证一下是不是上面的样子：
+搞两个出站的Handler，验证一下是不是上面的样子：
 
 ```java
 @Override
@@ -822,7 +821,6 @@ protected void initChannel(SocketChannel channel) {
 
 ![image-20230306174237906](https://s2.loli.net/2023/03/06/YZ1nIW5VTtEBFvs.png)
 
-有关Channel及其处理相关操作，就先讲到这里。
 
 ### EventLoop和任务调度
 
