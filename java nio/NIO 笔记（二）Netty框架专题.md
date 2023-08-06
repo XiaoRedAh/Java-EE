@@ -821,18 +821,19 @@ protected void initChannel(SocketChannel channel) {
 
 ![image-20230306174237906](https://s2.loli.net/2023/03/06/YZ1nIW5VTtEBFvs.png)
 
+## EventLoop和任务调度
 
-### EventLoop和任务调度
-
-前面我们讲解了Channel，那么在EventLoop中具体是如何进行调度的呢？实际上我们之前在编写NIO的时候，就是一个while循环在源源不断地等待新的事件，而EventLoop也正是这种思想，它本质就是一个事件等待/处理线程。
+之前在编写NIO的时候，用一个while循环在源源不断地等待新的事件，而EventLoop也正是这种思想，它本质就是一个事件等待/处理线程。
 
 ![image-20230306174245836](https://s2.loli.net/2023/03/06/6Z1evQGNayObnD5.png)
 
-我们上面使用的就是EventLoopGroup，包含很多个EventLoop，我们每创建一个连接，就需要绑定到一个EventLoop上，之后EventLoop就会开始监听这个连接（只要连接不关闭，一直都是这个EventLoop负责此Channel），而一个EventLoop可以同时监听很多个Channel，实际上就是我们之前学习的Selector罢了。
+上面使用的就是EventLoopGroup，包含很多个EventLoop，每创建一个连接，就需要绑定到一个EventLoop上，之后EventLoop就会开始监听这个连接（只要连接不关闭，一直都是这个EventLoop负责此Channel）。
+而一个EventLoop可以同时监听很多个Channel，实际上就是之前学习的Selector罢了。
 
-当然，EventLoop并不只是用于网络操作的，我们前面所说的EventLoop其实都是NioEventLoop，它是专用于网络通信的，除了网络通信之外，我们也可以使用普通的EventLoop来处理一些其他的事件。
+实际上，其实是NioEventLoop专用于网络通信，除了网络通信之外，也可以使用普通的EventLoop来处理一些其他的事件。
 
-比如我们现在编写的服务端，虽然结构上和主从Reactor多线程模型差不多，但是我们发现，Handler似乎是和读写操作在一起进行的，而我们之前所说的模型中，Handler是在读写之外的单独线程中进行的：
+***
+比如现在编写的服务端，虽然结构上和主从Reactor多线程模型差不多，但是Handler似乎是和读写操作在一起进行的（之前所说的模型中，Handler是在读写之外的单独线程中进行的）
 
 ```java
 public static void main(String[] args) {
@@ -860,7 +861,8 @@ public static void main(String[] args) {
 }
 ```
 
-可以看到，如果在这里卡住了，那么就没办法处理EventLoop绑定的其他Channel了，所以我们这里就创建一个普通的EventLoop来专门处理读写之外的任务：
+如果在这里卡住了，那么就没办法处理EventLoop绑定的其他Channel了
+所以在这里创建一个普通的EventLoop来专门处理读写之外的任务：
 
 ```java
 public static void main(String[] args) {
@@ -896,7 +898,7 @@ public static void main(String[] args) {
 }
 ```
 
-当然我们也可以写成一条流水线：
+也可以写成一条流水线：
 
 ```java
 public static void main(String[] args) {
@@ -934,9 +936,7 @@ public static void main(String[] args) {
 }
 ```
 
-这样，我们就进一步地将EventLoop利用起来了。
-
-按照前面服务端的方式，我们来把Netty版本的客户端也给写了：
+按照前面服务端的方式，把Netty版本的客户端也给写了：
 
 ```java
 public static void main(String[] args) {
@@ -969,11 +969,7 @@ public static void main(String[] args) {
 }
 ```
 
-我们来测试一下吧：
-
-![image-20230306174303352](https://s2.loli.net/2023/03/06/cnbxqteVo62da8p.png)
-
-### Future和Promise
+## Future和Promise
 
 我们接着来看ChannelFuture，前面我们提到，Netty中Channel的相关操作都是异步进行的，并不是在当前线程同步执行，我们不能立即得到执行结果，如果需要得到结果，那么我们就必须要利用到Future。
 
