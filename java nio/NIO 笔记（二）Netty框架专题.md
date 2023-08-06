@@ -142,29 +142,29 @@ ByteBuf相比NIO中的ByteBuffer的优势：
 * 动态扩容。
 
 ByteBuf的内部结构：
-
 ```java
 public abstract class AbstractByteBuf extends ByteBuf {
     ...
-    int readerIndex;   //index被分为了读和写，是两个指针在同时工作
+    //index被分为了读和写，是两个指针在同时工作
+    int readerIndex;   
     int writerIndex;
-    private int markedReaderIndex;    //mark操作也分两种
+    //mark操作也分两种
+    private int markedReaderIndex;    
     private int markedWriterIndex;
-    private int maxCapacity;    //最大容量，没错，这玩意能动态扩容
+    //最大容量，这玩意能动态扩容
+    private int maxCapacity;    
 ```
 
-可以看到，读操作和写操作分别由两个指针在进行维护，每写入一次，`writerIndex`向后移动一位，每读取一次，也是`readerIndex`向后移动一位，当然`readerIndex`不能大于`writerIndex`，这样就不会像NIO中的ByteBuffer那样还需要进行翻转了。
+### 读写指针
 
-![image-20220507160235552](https://tva1.sinaimg.cn/large/e6c9d24egy1h1zwgc0v5ej21fe08m3z1.jpg)
+读操作和写操作分别由两个指针在进行维护，每写入/读取一次，`writerIndex`/`readerIndex`向后移动一位。当然`readerIndex`不能大于`writerIndex`，这样就不会像NIO中的ByteBuffer那样还需要进行翻转了。
+`readerIndex`和`writerIndex`之间的部分就是是可读的内容，而`writerIndex`之后到`capacity`都是可写的部分。
 
-其中`readerIndex`和`writerIndex`之间的部分就是是可读的内容，而`writerIndex`之后到`capacity`都是可写的部分。
-
-我们来实际使用一下看看：
-
+通过结合断点调试，可以观察读写指针的移动情况，更加清楚的认识一下ByteBuf的底层操作。
 ```java
 public static void main(String[] args) {
     //创建一个初始容量为10的ByteBuf缓冲区，这里的Unpooled是用于快速生成ByteBuf的工具类
-    //至于为啥叫Unpooled是池化的意思，ByteBuf有池化和非池化两种，区别在于对内存的复用，我们之后再讨论
+    //至于为啥叫Unpooled是池化的意思，ByteBuf有池化和非池化两种，区别在于对内存的复用
     ByteBuf buf = Unpooled.buffer(10);
     System.out.println("初始状态："+Arrays.toString(buf.array()));
     buf.writeInt(-888888888);   //写入一个Int数据
@@ -178,13 +178,12 @@ public static void main(String[] args) {
 }
 ```
 
-通过结合断点调试，我们可以观察读写指针的移动情况，更加清楚的认识一下ByteBuf的底层操作。
+### 划分操作
 
-我们再来看看划分操作是不是和之前一样的：
-
+可以看到，划分也是根据当前读取的位置来进行的
 ```java
 public static void main(String[] args) {
-  	//我们也可以将一个byte[]直接包装进缓冲区（和NIO是一样的）不过写指针的值一开始就跑到最后去了，但是这玩意是不是只读的
+  	//也可以将一个byte[]直接包装进缓冲区（和NIO是一样的）不过写指针的值一开始就跑到最后去了，但是这玩意是不是只读的
     ByteBuf buf = Unpooled.wrappedBuffer("abcdefg".getBytes());
   	//除了包装，也可以复制数据，copiedBuffer()会完完整整将数据拷贝到一个新的缓冲区中
     buf.readByte();   //读取一个字节
@@ -195,22 +194,22 @@ public static void main(String[] args) {
 }
 ```
 
-可以看到，划分也是根据当前读取的位置来进行的。
+### 动态扩容
 
-我们继续来看看它的另一个特性，动态扩容，比如我们申请一个容量为10的缓冲区：
-
+申请一个容量为10的缓冲区：
+通过结果发现，在写入一个超出当前容量的数据时，会进行动态扩容，扩容会从64开始，之后每次触发扩容都会x2
 ```java
 public static void main(String[] args) {
     ByteBuf buf = Unpooled.buffer(10);    //容量只有10字节
     System.out.println(buf.capacity());
-  	//直接写一个字符串
-    buf.writeCharSequence("卢本伟牛逼！", StandardCharsets.UTF_8);   //很明显这么多字已经超过10字节了
+    //直接写一个字符串
+    //很明显这么多字已经超过10字节了
+    buf.writeCharSequence("卢本伟牛逼！", StandardCharsets.UTF_8);  
     System.out.println(buf.capacity());
 }
 ```
 
-通过结果我们发现，在写入一个超出当前容量的数据时，会进行动态扩容，扩容会从64开始，之后每次触发扩容都会x2，当然如果我们不希望它扩容，可以指定最大容量：
-
+如果不希望它扩容，可以指定最大容量：
 ```java
 public static void main(String[] args) {
     //在生成时指定maxCapacity也为10
@@ -225,26 +224,28 @@ public static void main(String[] args) {
 
 ![image-20230306173824953](https://s2.loli.net/2023/03/06/MyE5vbO1Vhpoxzj.png)
 
-我们接着来看一下缓冲区的三种实现模式：堆缓冲区模式、直接缓冲区模式、复合缓冲区模式。
+### 三种缓冲区
 
-堆缓冲区（数组实现）和直接缓冲区（堆外内存实现）不用多说，前面我们在NIO中已经了解过了，我们要创建一个直接缓冲区也很简单，直接调用：
+缓冲区的三种实现模式：堆缓冲区模式、直接缓冲区模式、复合缓冲区模式。
+堆缓冲区（数组实现）和直接缓冲区（堆外内存实现）在NIO中已经了解过了。
 
+***
+创建一个直接缓冲区：
 ```java
 public static void main(String[] args) {
     ByteBuf buf = Unpooled.directBuffer(10);
+    //这里会抛异常
+    //不能直接拿到数组，因为底层压根不是数组实现的
     System.out.println(Arrays.toString(buf.array()));
 }
 ```
 
-同样的不能直接拿到数组，因为底层压根不是数组实现的：
-
-![image-20230306174001430](https://s2.loli.net/2023/03/06/MraXOnlvekWNYfu.png)
-
-我们来看看复合模式，复合模式可以任意地拼凑组合其他缓冲区，比如我们可以：
+***
+复合模式可以任意地拼凑组合其他缓冲区，比如：
 
 ![image-20230306174009890](https://s2.loli.net/2023/03/06/OmoL7vZDizgM9KT.png)
 
-这样，如果我们想要对两个缓冲区组合的内容进行操作，我们就不用再单独创建一个新的缓冲区了，而是直接将其进行拼接操作，相当于是作为多个缓冲区组合的视图。
+这样，如果想要对两个缓冲区组合的内容进行操作，不用再单独创建一个新的缓冲区了，而是直接将其进行拼接操作，相当于是作为多个缓冲区组合的视图。
 
 ```java
 //创建一个复合缓冲区
@@ -257,11 +258,9 @@ for (int i = 0; i < buf.capacity(); i++) {
 }
 ```
 
-可以看到我们也可以正常操作组合后的缓冲区。
+### 池化和非池化
 
-最后我们来看看，池化缓冲区和非池化缓冲区的区别。
-
-我们研究一下Unpooled工具类中具体是如何创建buffer的：
+Unpooled工具类中具体是如何创建buffer的：
 
 ```java
 public final class Unpooled {
@@ -288,13 +287,12 @@ public final class Unpooled {
 }
 ```
 
-那么我们来看看，这个ByteBufAllocator又是个啥，顾名思义，其实就是负责分配缓冲区的。
+ByteBufAllocator负责分配缓冲区，它有两个具体实现类：`UnpooledByteBufAllocator`和`PooledByteBufAllocator`，一个是非池化缓冲区生成器，还有一个是池化缓冲区生成器
 
-它有两个具体实现类：`UnpooledByteBufAllocator`和`PooledByteBufAllocator`，一个是非池化缓冲区生成器，还有一个是池化缓冲区生成器，那么池化和非池化有啥区别呢？
+实际上池化缓冲区利用了池化思想，将缓冲区通过设置内存池来进行内存块复用，这样就不用频繁地进行内存的申请，尤其是在使用堆外内存的时候，避免多次重复通过底层`malloc()`函数系统调用申请内存造成的性能损失。Netty的内存管理机制主要是借鉴Jemalloc内存分配策略
 
-实际上池化缓冲区利用了池化思想，将缓冲区通过设置内存池来进行内存块复用，这样就不用频繁地进行内存的申请，尤其是在使用堆外内存的时候，避免多次重复通过底层`malloc()`函数系统调用申请内存造成的性能损失。Netty的内存管理机制主要是借鉴Jemalloc内存分配策略，感兴趣的小伙伴可以深入了解一下。
-
-所以，由于是复用内存空间，我们来看个例子：
+池化缓冲区例子：
+在使用完一个缓冲区之后，将其进行资源释放。当再次申请一个同样大小的缓冲区时，会直接得到之前已经申请好的缓冲区。所以，PooledByteBufAllocator实际上是将ByteBuf实例放入池中在进行复用。
 
 ```java
 public static void main(String[] args) {
@@ -309,9 +307,7 @@ public static void main(String[] args) {
 }
 ```
 
-可以看到，在我们使用完一个缓冲区之后，我们将其进行资源释放，当我们再次申请一个同样大小的缓冲区时，会直接得到之前已经申请好的缓冲区，所以，PooledByteBufAllocator实际上是将ByteBuf实例放入池中在进行复用。
-
-### 零拷贝简介
+## 零拷贝简介
 
 >零拷贝是一种I/O操作优化技术，可以快速高效地将数据从文件系统移动到网络接口，而不需要将其从内核空间复制到用户空间
 
