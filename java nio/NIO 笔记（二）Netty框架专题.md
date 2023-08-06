@@ -969,12 +969,13 @@ public static void main(String[] args) {
 }
 ```
 
-## Future和Promise
+## Future
 
-我们接着来看ChannelFuture，前面我们提到，Netty中Channel的相关操作都是异步进行的，并不是在当前线程同步执行，我们不能立即得到执行结果，如果需要得到结果，那么我们就必须要利用到Future。
+Netty中Channel的相关操作都是异步进行的，并不是在当前线程同步执行，不能立即得到执行结果，如果需要得到结果，就必须要利用到Future。
+比如Channel的write操作，服务端启动，都是返回一个ChannelFuture对象
 
-我们先来看看ChannelFutuer接口怎么定义的：
-
+ChannelFutuer接口：
+此接口继承自Netty中的Future接口的（不是JDK的那个）：
 ```java
 public interface ChannelFuture extends Future<Void> {
     Channel channel();    //我们可以直接获取此任务的Channel
@@ -990,7 +991,7 @@ public interface ChannelFuture extends Future<Void> {
 }
 ```
 
-此接口是继承自Netty中的Future接口的（不是JDK的那个）：
+父接口Future接口（不是JDK的那个）：
 
 ```java
 public interface Future<V> extends java.util.concurrent.Future<V> {   //再往上才是JDK的Future
@@ -1005,22 +1006,9 @@ public interface Future<V> extends java.util.concurrent.Future<V> {   //再往�
 }
 ```
 
-Channel的很多操作都是异步完成的，直接返回一个ChannelFuture，比如Channel的write操作，返回的就是一个ChannelFuture对象：
+## Promise
 
-```java
-.addLast(new ChannelInboundHandlerAdapter(){
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf buf = (ByteBuf) msg;
-        System.out.println("接收到客户端发送的数据："+buf.toString(StandardCharsets.UTF_8));
-        ChannelFuture future = ctx.writeAndFlush(Unpooled.wrappedBuffer("已收到！".getBytes()));
-        System.out.println("任务完成状态："+future.isDone());   //通过ChannelFuture来获取相关信息
-    }
-});
-```
-
-包括我们的服务端启动也是返回的ChannelFuture：
-
+服务端启动会返回ChannelFuture对象：
 ```java
 ...
 								}
@@ -1031,7 +1019,10 @@ Channel的很多操作都是异步完成的，直接返回一个ChannelFuture，
 }
 ```
 
-可以看到，服务端的启动就比较慢了，所以在一开始直接获取状态会返回`false`，但是这个时候我们又需要等到服务端启动完成之后做一些事情，这个时候该怎么办呢？现在我们就有两种方案了：
+服务端的启动就比较慢了，所以在一开始直接获取状态会返回`false`，但是这个时候我们又需要等到服务端启动完成之后做一些事情。
+
+有两种方案
+第一种方案是直接让当前线程同步等待异步任务完成，使用`sync()`方法，这样当前线程会一直阻塞直到任务结束。
 
 ```java
                 }
@@ -1043,13 +1034,13 @@ Channel的很多操作都是异步完成的，直接返回一个ChannelFuture，
 }
 ```
 
-第一种方案是直接让当前线程同步等待异步任务完成，我们可以使用`sync()`方法，这样当前线程会一直阻塞直到任务结束。第二种方案是添加一个监听器，等待任务完成时通知：
+第二种方案是添加一个监听器，等待任务完成时通知：
 
 ```java
                 }
             });
     ChannelFuture future = bootstrap.bind(8080);
-		//直接添加监听器，当任务完成时自动执行，但是注意执行也是异步的，不是在当前线程
+    //直接添加监听器，当任务完成时自动执行，但是注意执行也是异步的，不是在当前线程
     future.addListener(f -> System.out.println("我是服务端启动完成之后要做的事情！"));
 }
 ```
@@ -1075,8 +1066,8 @@ try(Scanner scanner = new Scanner(System.in)){
     group.shutdownGracefully();   //优雅退出EventLoop，其实就是把还没发送的数据之类的事情做完，当然也可以shutdownNow立即关闭
 }
 ```
-
-我们接着来看看Promise接口，它支持手动设定成功和失败的结果：
+***
+Promise接口支持手动设定成功和失败的结果：
 
 ```java
 //此接口也是继承自Netty中的Future接口
@@ -1086,7 +1077,7 @@ public interface Promise<V> extends Future<V> {
     Promise<V> setFailure(Throwable var1);  //手动设定失败
     boolean tryFailure(Throwable var1);
     boolean setUncancellable();
-		//这些就和之前的Future是一样的了
+    //这些就和之前的Future是一样的了
     Promise<V> addListener(GenericFutureListener<? extends Future<? super V>> var1);
     Promise<V> addListeners(GenericFutureListener<? extends Future<? super V>>... var1);
     Promise<V> removeListener(GenericFutureListener<? extends Future<? super V>> var1);
@@ -1098,7 +1089,8 @@ public interface Promise<V> extends Future<V> {
 }
 ```
 
-比如我们来测试一下：
+测试一下：
+手动指定成功状态，包括ChannelOutboundInvoker中的一些基本操作，都是支持ChannelPromise的
 
 ```java
 public static void main(String[] args) throws ExecutionException, InterruptedException {
@@ -1109,8 +1101,6 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
     System.out.println(promise.get());    //获取结果，就是我们刚刚给进去的
 }
 ```
-
-可以看到我们可以手动指定成功状态，包括ChannelOutboundInvoker中的一些基本操作，都是支持ChannelPromise的：
 
 ```java
 .addLast(new ChannelInboundHandlerAdapter(){
@@ -1128,7 +1118,7 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 });
 ```
 
-最后结果就是我们想要的了，当然我们也可以像Future那样添加监听器，当成功时自动通知：
+也可以像Future那样添加监听器，当成功时自动通知：
 
 ```java
 public static void main(String[] args) throws ExecutionException, InterruptedException {
@@ -1139,8 +1129,6 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
     System.out.println(promise.isSuccess());
 }
 ```
-
-有关Future和Promise就暂时讲解到这里。
 
 ### 编码器和解码器
 
