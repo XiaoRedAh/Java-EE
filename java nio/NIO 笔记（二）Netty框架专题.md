@@ -1346,9 +1346,9 @@ channel.pipeline()
         .addLast(new StringEncoder());
 ```
 
-### 实现HTTP协议通信
+## 实现HTTP协议通信
 
-前面我们介绍了Netty为我们提供的编码器和解码器，这里我们就来使用一下支持HTTP协议的编码器和解码器。
+使用支持HTTP协议的编码器和解码器。
 
 ```java
 channel.pipeline()
@@ -1368,17 +1368,14 @@ channel.pipeline()
         .addLast(new HttpResponseEncoder());   //响应记得也要编码后发送哦
 ```
 
-现在我们用浏览器访问一下我们的服务器吧：
-
+现在用浏览器访问我们的服务器：
 ![image-20230306174531740](https://s2.loli.net/2023/03/06/oAlpObgidLQhzE8.png)
 
-可以看到浏览器成功接收到服务器响应，然后控制台打印了以下类型：
-
+浏览器成功接收到服务器响应，然后控制台打印了以下类型：
+一次请求是一个DefaultHttpRequest+LastHttpContent$1，这里有两组是因为浏览器请求了一个地址之后，紧接着请求了网站的favicon图标。
 ![image-20230306174542903](https://s2.loli.net/2023/03/06/WoCXiKelwzmYnQI.png)
 
-可以看到一次请求是一个DefaultHttpRequest+LastHttpContent$1，这里有两组是因为浏览器请求了一个地址之后紧接着请求了我们网站的favicon图标。
-
-这样把数据分开处理肯定是不行的，要是直接整合成一个多好，安排：
+这样把数据分开处理肯定是不行的，直接整合成一个：
 
 ```java
 channel.pipeline()
@@ -1398,15 +1395,16 @@ channel.pipeline()
         .addLast(new HttpResponseEncoder());
 ```
 
-再次访问，我们发现可以正常读取请求路径了：
+再次访问，可以正常读取请求路径了：
 
 ![image-20230306174557790](https://s2.loli.net/2023/03/06/P3QRD2kHme1Vhga.png)
 
-我们来试试看搞个静态页面代理玩玩，拿出我们的陈年老模板：
+搞个静态页面代理玩玩：
+全部放进Resource文件夹，一会根据浏览器的请求路径，就可以返回对应的页面了
 
 ![image-20230306174609270](https://s2.loli.net/2023/03/06/ITE5izhrG4ZedSO.png)
 
-全部放进Resource文件夹，一会根据浏览器的请求路径，我们就可以返回对应的页面了，先安排一个解析器，用于解析路径然后将静态页面的内容返回：
+先搞个解析器，用于解析路径然后将静态页面的内容返回：
 
 ```java
 public class PageResolver {
@@ -1444,7 +1442,7 @@ public class PageResolver {
 }
 ```
 
-现在我们的静态资源解析就写好了，接着：
+接着，请求进来了直接走解析：
 
 ```java
 channel.pipeline()
@@ -1463,11 +1461,9 @@ channel.pipeline()
         .addLast(new HttpResponseEncoder());
 ```
 
-现在我们启动服务器来试试看吧：
+启动服务器，看到页面正常展示，有Tomcat那味了
 
 ![image-20230306174624966](https://s2.loli.net/2023/03/06/PpFUKSMXDi5ItjN.png)
-
-可以看到页面可以正常展示了，是不是有Tomcat哪味了。
 
 ### 其他内置Handler介绍
 
