@@ -1130,14 +1130,21 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 }
 ```
 
-### 编码器和解码器
+## 编码器和解码器
 
-前面我们已经了解了Netty的大部分基础内容，我们接着来看看Netty内置的一些编码器和解码器。
+在之前，数据发送和接收都是需要以ByteBuf形式传输，不太方便。
+参考一下JavaWeb那种搞个Filter，在开始处理数据之前，过滤一次，并在过滤的途中将数据转换成想要的类型，也可以将发出的数据进行转换，这就要用到编码器和解码器。
 
-在前面的学习中，我们的数据发送和接收都是需要以ByteBuf形式传输，但是这样是不是有点太不方便了，咱们能不能参考一下JavaWeb那种搞个Filter，在我们开始处理数据之前，过过滤一次，并在过滤的途中将数据转换成我们想要的类型，也可以将发出的数据进行转换，这就要用到编码解码器了。
+***
+**解码器：将接收到的数据转换成想要的类型**
+解码器本质上也算是一种ChannelInboundHandlerAdapter，用于处理入站请求
 
-我们先来看看最简的，字符串，如果我们要直接在客户端或是服务端处理字符串，可以直接添加一个字符串解码器到我们的流水线中：
+![image-20230306174321314](https://s2.loli.net/2023/03/06/x6Fh48G7PjZqHoW.png)
 
+它继承自MessageToMessageDecoder，用于将传入的Message转换为另一种类型
+>除了MessageToMessageDecoder之外，还有其他类型的解码器，比如ByteToMessageDecoder等，Netty内置了很多的解码器实现来方便开发，比如HTTP，SMTP、MQTT等，以及Redis、Memcached、JSON等数据包。
+
+比如想要直接在客户端或是服务端处理字符串，可以直接添加一个字符串解码器到流水线中：
 ```java
 @Override
 protected void initChannel(SocketChannel channel) {
@@ -1154,15 +1161,10 @@ protected void initChannel(SocketChannel channel) {
 }
 ```
 
-可以看到，使用起来还是非常方便的，我们只需要将其添加到流水线即可，实际上器本质就是一个ChannelInboundHandlerAdapter：
-
-![image-20230306174321314](https://s2.loli.net/2023/03/06/x6Fh48G7PjZqHoW.png)
-
-我们看到它是继承自MessageToMessageDecoder，用于将传入的Message转换为另一种类型，我们也可以自行编写一个实现：
-
+自定义一个解码器：
 ```java
 /**
- * 我们也来搞一个自定义的
+ * 搞一个自定义的
  */
 public class TestDecoder extends MessageToMessageDecoder<ByteBuf> {
     @Override
@@ -1174,12 +1176,8 @@ public class TestDecoder extends MessageToMessageDecoder<ByteBuf> {
 }
 ```
 
-运行，可以看到：
-
-![image-20230306174333758](https://s2.loli.net/2023/03/06/aM6gy1BAeLUlEui.png)
-
-当然如果我们在List里面丢很多个数据的话：
-
+如果在List里面丢很多个数据的话：
+后面的Handler会依次对三条数据都进行处理
 ```java
 public class TestDecoder extends MessageToMessageDecoder<ByteBuf> {
     @Override
@@ -1195,9 +1193,9 @@ public class TestDecoder extends MessageToMessageDecoder<ByteBuf> {
 
 ![image-20230306174344121](https://s2.loli.net/2023/03/06/izRZ8t4BDXPeQbs.png)
 
-可以看到，后面的Handler会依次对三条数据都进行处理，当然，除了MessageToMessageDecoder之外，还有其他类型的解码器，比如ByteToMessageDecoder等，这里就不一一介绍了，Netty内置了很多的解码器实现来方便我们开发，比如HTTP（下一节介绍），SMTP、MQTT等，以及我们常用的Redis、Memcached、JSON等数据包。
 
-当然，有了解码器处理发来的数据，那发出去的数据肯定也是需要被处理的，所以编码器就出现了：
+***
+**编码器：对发出去的数据进行编码处理**
 
 ```java
 channel.pipeline()
@@ -1213,13 +1211,12 @@ channel.pipeline()
         .addLast(new StringEncoder());  //使用内置的StringEncoder可以直接将出站的字符串数据编码成ByteBuf
 ```
 
-和上面的StringDecoder一样，StringEncoder本质上就是一个ChannelOutboundHandlerAdapter：
+StringEncoder本质上就是一个ChannelOutboundHandlerAdapter：
 
 ![image-20230306174359121](https://s2.loli.net/2023/03/06/PruXKkgxhOf3bsJ.png)
 
-是不是感觉前面学习的Handler和Pipeline突然就变得有用了，直接一条线把数据处理安排得明明白白啊。
-
-现在我们把客户端也改成使用编码、解码器的样子：
+***
+**把客户端也改成使用编码、解码器**：
 
 ```java
 public static void main(String[] args) {
@@ -1253,16 +1250,15 @@ public static void main(String[] args) {
 }
 ```
 
-这样我们的代码量又蹭蹭的减少了很多：
-
-![image-20230306174410560](https://s2.loli.net/2023/03/06/Jh1VqZMD4LRi7f8.png)
-
-当然，除了编码器和解码器之外，还有编解码器。？？缝合怪？？
+***
+除了编码器和解码器之外，还有**编解码器**（缝合怪）
 
 ![image-20230306174419482](https://s2.loli.net/2023/03/06/CpcgbnRwSk6dIF5.png)
 
-可以看到它是既继承了ChannelInboundHandlerAdapter也实现了ChannelOutboundHandler接口，又能处理出站也能处理入站请求，实际上就是将之前的给组合到一起了，比如我们也可以实现一个缝合在一起的StringCodec类：
+它既继承了ChannelInboundHandlerAdapter也实现了ChannelOutboundHandler接口，又能处理出站也能处理入站请求，实际上就是将之前的给组合到一起了
 
+实现一个缝合在一起的StringCodec类：
+实际上就是同时去实现编码和解码方法，继承MessageToMessageCodec类即可。
 ```java
 //需要指定两个泛型，第一个是入站的消息类型，还有一个是出站的消息类型，出站是String类型，我们要转成ByteBuf
 public class StringCodec extends MessageToMessageCodec<ByteBuf, String> {
@@ -1281,10 +1277,7 @@ public class StringCodec extends MessageToMessageCodec<ByteBuf, String> {
 }
 ```
 
-可以看到实际上就是需要我们同时去实现编码和解码方法，继承MessageToMessageCodec类即可。
-
 当然，如果整条流水线上有很多个解码器或是编码器，那么也可以多次进行编码或是解码，比如：
-
 ```java
 public class StringToStringEncoder extends MessageToMessageEncoder<String> {
 
@@ -1315,7 +1308,8 @@ channel.pipeline()
 
 ![image-20230306174519936](https://s2.loli.net/2023/03/06/7f9LpaTQ8OcqMeN.png)
 
-我们在一开始提到的粘包/拆包问题，也可以使用一个解码器解决：
+***
+**使用一个解码器解决粘包/拆包问题**
 
 ```java
 channel.pipeline()
@@ -1351,8 +1345,6 @@ channel.pipeline()
         .addLast(new LengthFieldPrepender(4))   //客户端在发送时也需要将长度拼到前面去
         .addLast(new StringEncoder());
 ```
-
-有关编码器和解码器的内容就先介绍到这里。
 
 ### 实现HTTP协议通信
 
