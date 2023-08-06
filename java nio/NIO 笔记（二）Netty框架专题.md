@@ -1465,26 +1465,29 @@ channel.pipeline()
 
 ![image-20230306174624966](https://s2.loli.net/2023/03/06/PpFUKSMXDi5ItjN.png)
 
-### 其他内置Handler介绍
+## 其他内置Handler介绍
 
-Netty也为我们内置了一些其他比较好用的Handler，比如我们要打印日志：
+Netty还内置了一些其他比较好用的Handler
+
+**LoggingHandler打印日志**：
 
 ```java
 channel.pipeline()
         .addLast(new HttpRequestDecoder())
         .addLast(new HttpObjectAggregator(Integer.MAX_VALUE))
-        .addLast(new LoggingHandler(LogLevel.INFO))   //添加一个日志Handler，在请求到来时会自动打印相关日志
+        //添加一个日志Handler，在请求到来时会自动打印相关日志
+        .addLast(new LoggingHandler(LogLevel.INFO))   
         ...
 ```
 
-日志级别我们选择INFO，现在我们用浏览器访问一下：
+日志级别选择INFO，浏览器访问一下：
+每次请求的内容和详细信息都会在日志中出现，包括详细的数据包解析过程，请求头信息都是完整地打印在控制台上的。
 
 ![image-20230306174636233](https://s2.loli.net/2023/03/06/bFBDTEpi3S6U87N.png)
 
-可以看到每次请求的内容和详细信息都会在日志中出现，包括详细的数据包解析过程，请求头信息都是完整地打印在控制台上的。
-
-我们也可以使用Handler对IP地址进行过滤，比如我们不希望某些IP地址连接我们的服务器：
-
+***
+**RuleBasedIpFilter过滤IP地址**
+不希望某些IP地址连接我们的服务器：
 ```java
 channel.pipeline()
         .addLast(new HttpRequestDecoder())
@@ -1504,11 +1507,9 @@ channel.pipeline()
         }))
 ```
 
-现在我们浏览器访问一下看看：
-
-![image-20230306174646897](https://s2.loli.net/2023/03/06/DlLTroQJdhPcyBO.png)
-
-我们也可以对那些长期处于空闲的进行处理：
+***
+**IdleStateHandler处理长期空闲的连接空闲**：
+通过这种机制，可以直接关掉那些占着茅坑不拉屎的连接
 
 ```java
 channel.pipeline()
@@ -1538,12 +1539,6 @@ channel.pipeline()
         })
         .addLast(new StringEncoder());
 ```
-
-可以看到，当我们超过一段时间不发送数据时，就会这样：
-
-![image-20230306174701901](https://s2.loli.net/2023/03/06/T26DcV39fHULXQ4.png)
-
-通过这种机制，我们就可以直接关掉那些占着茅坑不拉屎的连接。
 
 ### 启动流程源码解读
 
