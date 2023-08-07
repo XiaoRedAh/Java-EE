@@ -362,24 +362,40 @@ sendFile 可以利用 DMA 方式，减少 CPU 拷贝，mmap 则不能（必须�
 
 ## Netty工作模型
 
+### 介绍
+
 Netty以主从Reactor多线程模型为基础，构建出了一套高效的工作模型。
-大致工作模型图如下：
 
-![image-20230306174117322](https://s2.loli.net/2023/03/06/7qrSNvm6ePpMd9H.png)
-
-可以看到，和主从Reactor多线程模型非常类似：
+回顾主从Reactor多线程模型
+所有的客户端需要连接到主Reactor完成Accept操作后，其他的操作由从Reactor去完成
 
 ![image-20230306174127616](https://s2.loli.net/2023/03/06/pWGVdnqsmjucClJ.png)
 
-所有的客户端需要连接到主Reactor完成Accept操作后，其他的操作由从Reactor去完成，这里也是差不多的思想，但是它进行了一些改进：
+Netty工作模型图如下：
+可以看到，和主从Reactor多线程模型非常类似：
+![image-20230306174117322](https://s2.loli.net/2023/03/06/7qrSNvm6ePpMd9H.png)
 
-* Netty 抽象出两组线程池BossGroup和WorkerGroup，BossGroup专门负责接受客户端的连接, WorkerGroup专门负读写，就像主从Reactor一样。
-* 无论是BossGroup还是WorkerGroup，都是使用EventLoop（事件循环，很多系统都采用了事件循环机制，比如前端框架Node.js，事件循环顾名思义，就是一个循环，不断地进行事件通知）来进行事件监听的，整个Netty也是使用事件驱动来运作的，比如当客户端已经准备好读写、连接建立时，都会进行事件通知。说白了就像之前写NIO多路复用那样，只不过这里换成EventLoop而已，它已经封装好了一些常用操作，而且我们可以自己添加一些额外的任务，如果有多个EventLoop，会存放在EventLoopGroup中，EventLoopGroup就是BossGroup和WorkerGroup的具体实现。
-* 在BossGroup之后，会正常将SocketChannel绑定到WorkerGroup中的其中一个EventLoop上，进行后续的读写操作监听。
+Netty的线程模型也是差不多的思想，但是它进行了一些改进：
 
-***
-**创建一个Netty服务器**
+* Netty 抽象出两组线程池BossGroup和WorkerGroup。BossGroup负责接受客户端的连接, WorkerGroup负责读写，就像主从Reactor一样。
+* BossGroup和WorkerGroup的类型都是 NioEventLoopGroup，NioEventLoopGroup相当于一个事件循环组，可以有多个线程，即组中可以含有多个 NioEventLoop
+* 在BossGroup之后，会正常将SocketChannel绑定到WorkerGroup中的其中一个EventLoop上，每个 NioEventLoop 都有一个 Selector，用于监听绑定在其上的 socket 的网络通讯
 
+每个BossNioEventLoop循环执行的步骤：
+* 轮询 accept 事件
+* 处理 accept 事件，与 client 建立连接，生成 NioScocketChannel，并将其注册到某个 worker NIOEventLoop 上的 Selector
+* 处理任务队列的任务，即 runAllTasks
+
+每个Worker NioEventLoop循环执行的步骤：
+* 轮询 read，write事件
+* 在对应 NioScocketChannel 处理 I/O 事件(read,write)
+* 处理任务队列的任务，即 runAllTasks
+
+每个 Worker NioEventLoop 处理业务时，会使用 pipeline，pipeline 中包含了 channel，即通过 pipeline 可以获取到对应通道，管道中维护了很多的处理器
+
+### 初步构建Netty服务器
+
+服务端
 ```java
 public static void main(String[] args) {
     //这里我们使用NioEventLoopGroup实现类即可，创建BossGroup和WorkerGroup
@@ -438,7 +454,7 @@ public static void main(String[] args) {
 }
 ```
 
-通过通道正常收发数据即可，这样就成功搭建好了一个Netty服务器。
+这样就成功搭建好了一个Netty服务器。
 
 ## Channel详解
 
