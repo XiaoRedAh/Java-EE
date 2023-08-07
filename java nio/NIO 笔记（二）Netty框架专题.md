@@ -733,6 +733,7 @@ ChannelPipeline 实现了一种高级形式的拦截过滤器模式，使用户�
 实际在编程时，只需要关心如何安排自定义的Handler即可
 
 常用方法:
+>注意，这些add都是自定义的handler，默认的那两个处理器始终都是在首尾
 * ChannelPipeline addFirst(ChannelHandler... handlers)，把一个handler添加到链中的第一个位置
 * ChannelPipeline addLast(ChannelHandler... handlers)，把一个handler添加到链中的最后一个位置
 
@@ -764,7 +765,9 @@ ChannelPipeline 实现了一种高级形式的拦截过滤器模式，使用户�
 });
 ```
 
-如果不在ChannelInboundHandlerAdapter中重写对应的方法，上面自定义的ChannelHandler会默认传播到流水线的下一个ChannelInboundHandlerAdapter进行处理，比如：
+注意：如果不在ChannelInboundHandlerAdapter中重写对应的方法，那么自定义的ChannelHandler会默认传播到流水线的下一个ChannelInboundHandlerAdapter进行处理：
+
+比如这里的异常处理，第一个handler没有重写exceptionCaught方法，因此触发时，会调用到第二个handler的exceptionCaught方法，而第二个handler重写了这个方法
 
 ```java
 public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -776,6 +779,9 @@ public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws E
 ***
 **示例二**
 将一个入站消息在两个Handler中进行处理
+>和过滤器链一样，如果想要让下一个handler处理，要手动进行传递
+下面代码中，第一个handler处理完后，需要手动将信息传递给第二个handler的channelRead方法，否则根本不会触发第二个handler的channelRead方法
+ctx.fireChannelRead(msg);
 ```java
 @Override
 protected void initChannel(SocketChannel channel) {
@@ -873,8 +879,7 @@ protected void initChannel(SocketChannel channel) {
             });
 }
 ```
-
-可以得出，出站操作在流水线上是反着来的，整个流水线操作大概流程如下:
+结果表明，入栈是先1后2，出站则是先2后1，出站，入站操作在流水线上是反着来的（比作过滤器链）:
 
 ![image-20230306174237906](https://s2.loli.net/2023/03/06/YZ1nIW5VTtEBFvs.png)
 
