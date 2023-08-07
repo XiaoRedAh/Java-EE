@@ -704,6 +704,15 @@ public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws E
 }
 ```
 
+## ChannelHandlerContext
+
+ChannelHandlerContext 中包含一个具体的事件处理器 ChannelHandler，同时 也绑定了对应的 pipeline 和 Channel 的信息，方便对 ChannelHandler 进行调用。
+
+常用方法
+ChannelFuture close()，关闭通道
+ChannelOutboundInvoker flush()，刷新
+ChannelFuture writeAndFlush(Object msg)，将数据写到
+
 ## ChannelPipeline
 
 ### 介绍
