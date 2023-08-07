@@ -456,11 +456,24 @@ public static void main(String[] args) {
 
 这样就成功搭建好了一个Netty服务器。
 
-## Channel详解
+## Channel
 
 Netty中，也有对应的Channel类型：
 Netty中的Channel相比NIO的功能丰富很多。Netty中的Channel所有的IO操作都是异步的，并不是在当前线程同步运行，方法调用之后就直接返回了，通过ChannelFuture获取操作的结果
 
+不同协议、不同的阻塞类型的连接都有不同的Channel 类型与之对应，常用的 Channel 类型：
+* NioSocketChannel，异步的客户端 TCP Socket 连接。
+* NioServerSocketChannel，异步的服务器端 TCP Socket 连接。
+* NioDatagramChannel，异步的 UDP 连接。
+* NioSctpChannel，异步的客户端 Sctp 连接。
+* NioSctpServerChannel，异步的 Sctp 服务器端连接
+
+Netty 中所有的 IO 操作都是异步的，不能立刻得知消息是否被正确处理。但是可以过一会等它执行完成或者直接注册一个监听，具体的实现就是通过 Future 和 ChannelFutures，他们可以注册一个监听，当操作执行成功或失败时监听会自动触发注册的监听事件
+
+Channel channel()，返回当前正在进行 IO 操作的通道
+ChannelFuture sync()，等待异步操作执行完毕
+
+**Channel接口**
 ```java
 public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparable<Channel> {
     ChannelId id();   //通道ID
@@ -484,9 +497,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
     Channel flush();   //刷新，基操
 }
 ```
-### ChannelOutboundInvoker
 
-Channel接口的父接口ChannelOutboundInvoker接口
+Channel接口的一个父接口：**ChannelOutboundInvoker接口**
 里面定义了大量的I/O操作：
 ```java
 //通道出站调用（包含大量的网络出站操作，比如写）
@@ -529,26 +541,13 @@ public interface AttributeMap {
 }
 ```
 
-### ChannelHandler
+## ChannelHandler
 
-ChannelHandler实际上就是之前Reactor模式中的Handler，将需要处理的事情放在ChannelHandler中，ChannelHandler充当所有入站和出站数据的应用程序逻辑的容器，全靠它来处理读写操作。
+### 接口层级
 
->不仅仅是一个简单的ChannelHandler在进行处理，而是一整套流水线，比如ChannelPipeline。
+>ChannelHandler实际上就是之前Reactor模式中的Handler，处理 I/O 事件或拦截 I/O 操作，并将其转发到其 ChannelPipeline（业务处理链）中的下一个处理程序。它充当所有入站和出站数据的应用程序逻辑的容器，全靠它来处理读写操作。
 
-比如我们上面就是使用了ChannelInboundHandlerAdapter抽象类，它是ChannelInboundHandler接口的实现，用于处理入站数据，可以看到我们实际上就是通过重写对应的方法来进行处理，这些方法会在合适的时间被调用：
-
-```java
-channel.pipeline().addLast(new ChannelInboundHandlerAdapter(){
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {  
-      	//ctx是上下文，msg是收到的消息，以ByteBuf形式
-        ByteBuf buf = (ByteBuf) msg;   //类型转换一下
-        System.out.println(Thread.currentThread().getName()+" >> 接收到客户端发送的数据："+buf.toString(StandardCharsets.UTF_8));
-        //通过上下文可以直接发送数据回去，注意要writeAndFlush才能让客户端立即收到
-        ctx.writeAndFlush(Unpooled.wrappedBuffer("已收到！".getBytes()));
-    }
-});
-```
+![img/ChannelHandler接口层级.png](img/ChannelHandler接口层级.png)
 
 顶层接口ChannelHandler：
 这个接口的定义比较简单，就只有一些流水线相关的回调方法
@@ -573,6 +572,7 @@ public interface ChannelHandler {
 ```
 
 下一级子接口ChannelInboundHandler：
+之前用到的ChannelInboundHandlerAdapter实际上就是对这些方法实现的抽象类，相比直接用接口，可以只重写我们需要的方法，没有重写的方法会默认向流水线下一个ChannelHandler发送。
 
 ```java
 //ChannelInboundHandler用于处理入站相关事件
@@ -598,11 +598,14 @@ public interface ChannelInboundHandler extends ChannelHandler {
 }
 ```
 
-之前用到的ChannelInboundHandlerAdapter实际上就是对这些方法实现的抽象类，相比直接用接口，可以只重写我们需要的方法，没有重写的方法会默认向流水线下一个ChannelHandler发送。
+另一个子接口ChannelOutboundHandler就不展示了
 
-***
-**测试ChannelInboundHandler**
-与ChannelInboundHandler对应的还有ChannelOutboundHandler用于处理出站相关的操作，这里就不进行演示了。
+### 自定义ChannelHandler示例
+
+实际业务中，经常需要自定义一个 Handler 类去继承 ChannelInboundHandlerAdapter，然后通过重写相应方法实现业务逻辑
+
+**自定义一个ChannelInboundHandler**
+ChannelOutboundHandler其实差不多的，就不进行演示了。
 
 ```java
 public class TestChannelHandler extends ChannelInboundHandlerAdapter {
@@ -701,14 +704,33 @@ public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws E
 }
 ```
 
-***
+## ChannelPipeline
 
+### 介绍
+
+ChannelPipeline 是一个 Handler 的集合，它负责处理和拦截 inbound 或者 outbound 的事件和操作，相当于一个贯穿 Netty 的链。（也理解为ChannelPipeline 是保存 ChannelHandler 的 List，用于处理或拦截 Channel 的入站事件和出站操作）
+
+ChannelPipeline 实现了一种高级形式的拦截过滤器模式，使用户可以完全控制事件的处理方式，以及 Channel 中各个的 ChannelHandler 如何相互交互
+
+**ChannelPipeline，ChannelHandlerContext，ChannelHandler三者关系如下**：
 每一个Channel都对应一个ChannelPipeline（在Channel初始化时就被创建了）
+每一个ChannelPipeline都维护了一个由ChannelHandlerContext构成的双向链表
+每一个ChannelHandlerContext关联一个ChannelHandler
+![img/三者关系png.png](img/三者关系png.png)
 
-![image-20230306174211952](https://s2.loli.net/2023/03/06/lSAjPCskUT9miNd.png)
+### 示例
 
-它就像是一条流水线一样，整条流水线上可能会有很多个Handler（包括入站和出站），整条流水线上的两端还有两个默认的处理器（用于一些预置操作和后续操作，比如释放资源等）。
-我们只需要关心如何安排这些自定义的Handler即可，比如现在希望创建两个入站ChannelHandler，一个用于接收请求并处理，还有一个用于处理当前接收请求过程中出现的异常：
+整条流水线上可能会有很多个Handler（包括入站和出站），两端会有两个默认的处理器（用于一些预置操作和后续操作，比如释放资源等）
+实际在编程时，只需要关心如何安排自定义的Handler即可
+
+常用方法:
+* ChannelPipeline addFirst(ChannelHandler... handlers)，把一个handler添加到链中的第一个位置
+* ChannelPipeline addLast(ChannelHandler... handlers)，把一个handler添加到链中的最后一个位置
+
+**示例一**
+创建两个入站ChannelHandler
+一个用于接收请求并处理，还有一个用于处理当前接收请求过程中出现的异常：
+
 
 ```java
 .childHandler(new ChannelInitializer<SocketChannel>() {   //注意，这里的SocketChannel不是我们NIO里面的，是Netty的
@@ -742,8 +764,9 @@ public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws E
 }
 ```
 
-将一个消息在两个Handler中进行处理：
-
+***
+**示例二**
+将一个入站消息在两个Handler中进行处理
 ```java
 @Override
 protected void initChannel(SocketChannel channel) {
@@ -765,7 +788,8 @@ protected void initChannel(SocketChannel channel) {
             });
 }
 ```
-
+***
+**示例三**
 出站相关操作可以使用ChannelOutboundHandlerAdapter来完成：
 
 ```java
@@ -773,7 +797,7 @@ protected void initChannel(SocketChannel channel) {
 protected void initChannel(SocketChannel channel) {
     channel.pipeline()
             .addLast(new ChannelOutboundHandlerAdapter(){   
-              //注意出栈站操作应该在入站操作的前面，当我们使用ChannelHandlerContext的write方法时，是从流水线的当前位置倒着往前找下一个ChannelOutboundHandlerAdapter，而我们之前使用的ChannelInboundHandlerAdapter是从前往后找下一个，如果我们使用的是Channel的write方法，那么会从整个流水线的最后开始倒着往前找ChannelOutboundHandlerAdapter，一定要注意顺序。
+              //注意出站操作应该在入站操作的前面，当我们使用ChannelHandlerContext的write方法时，是从流水线的当前位置倒着往前找下一个ChannelOutboundHandlerAdapter，而我们之前使用的ChannelInboundHandlerAdapter是从前往后找下一个，如果我们使用的是Channel的write方法，那么会从整个流水线的最后开始倒着往前找ChannelOutboundHandlerAdapter，一定要注意顺序。
                 @Override
                 public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {  //当执行write操作时，会
                     System.out.println(msg);   //write的是啥，这里就是是啥
@@ -801,6 +825,8 @@ protected void initChannel(SocketChannel channel) {
 }
 ```
 
+***
+**示例四**
 搞两个出站的Handler，验证一下是不是上面的样子：
 
 ```java
@@ -839,7 +865,7 @@ protected void initChannel(SocketChannel channel) {
 }
 ```
 
-所以，出站操作在流水线上是反着来的，整个流水线操作大概流程如下:
+可以得出，出站操作在流水线上是反着来的，整个流水线操作大概流程如下:
 
 ![image-20230306174237906](https://s2.loli.net/2023/03/06/YZ1nIW5VTtEBFvs.png)
 
