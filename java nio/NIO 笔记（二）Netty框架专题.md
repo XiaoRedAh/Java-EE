@@ -1540,12 +1540,11 @@ channel.pipeline()
         .addLast(new StringEncoder());
 ```
 
-### 启动流程源码解读
+## 启动流程源码解读
 
-前面我们完成了对Netty基本功能的讲解，我们最后就来看一下，Netty到底是如何启动以及进行数据处理的。
+>探究Netty是如何启动以及进行数据处理的。
 
-首先我们知道，整个服务端是在bind之后启动的，那么我们就从这里开始下手，不多BB直接上源码：
-
+整个服务端是在bind之后启动的
 ```java
 public ChannelFuture bind(int inetPort) {
     return this.bind(new InetSocketAddress(inetPort));   //转换成InetSocketAddress对象
@@ -1553,7 +1552,6 @@ public ChannelFuture bind(int inetPort) {
 ```
 
 进来之后发现是调用的其他绑定方法，继续：
-
 ```java
 public ChannelFuture bind(SocketAddress localAddress) {
     this.validate();   //再次验证一下，看看EventLoopGroup和Channel指定了没
@@ -1561,7 +1559,7 @@ public ChannelFuture bind(SocketAddress localAddress) {
 }
 ```
 
-我们继续往下看：
+继续往下看：
 
 ```java
 private ChannelFuture doBind(final SocketAddress localAddress) {
@@ -1570,7 +1568,7 @@ private ChannelFuture doBind(final SocketAddress localAddress) {
 }
 ```
 
-我们看看是怎么注册的：
+如何实现注册
 
 ```java
 final ChannelFuture initAndRegister() {
@@ -1587,7 +1585,7 @@ final ChannelFuture initAndRegister() {
 }
 ```
 
-我们来看看是如何对创建好的ServerSocketChannel进行初始化的：
+如何对创建好的ServerSocketChannel进行初始化：
 
 ```java
 void init(Channel channel) {
@@ -1616,7 +1614,8 @@ void init(Channel channel) {
 }
 ```
 
-我们来看一下，ServerBootstrapAcceptor怎么处理的，直接看到它的`channelRead`方法：
+ServerBootstrapAcceptor怎么处理的，直接看到它的`channelRead`方法：
+实际上就是主从Reactor多线程模型
 
 ```java
 //当底层NIO的ServerSocketChannel的Selector有OP_ACCEPT事件到达时，NioEventLoop会接收客户端连接，创建SocketChannel，并触发channelRead回调
@@ -1638,9 +1637,7 @@ public void channelRead(ChannelHandlerContext ctx, Object msg) {
                 	...
 ```
 
-所以，实际上就是我们之前讲解的主从Reactor多线程模型，只要前面理解了，这里其实很好推断。
-
-初始化完成之后，我们来看看注册，在之前NIO阶段我们也是需要将Channel注册到对应的Selector才可以开始选择：
+初始化完成之后，我们来看看注册，在之前NIO阶段，也是需要将Channel注册到对应的Selector才可以开始选择：
 
 ```java
 public ChannelFuture register(Channel channel) {
