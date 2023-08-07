@@ -117,6 +117,7 @@ Netty是由JBOSS提供的一个开源的java网络编程框架，主要是对jav
 Netty实际上应用场景非常多
 * 游戏服务器(如Minecraft)
 * 微服务之间的远程调用(如Dubbo的RPC框架)
+* 大数据领域(比如Hadoop的高性能通信和序列化组件 Avro的RPC框架，默认采用 Netty 进行跨界点通信)
 * SpringWebFlux框架抛弃了内嵌Tomcat而使用Netty作为通信框架
 * ...
 
@@ -353,6 +354,11 @@ public static void main(String[] args) {
    ![image-20230306174108253](https://s2.loli.net/2023/03/06/CJraDsyKBEnie1z.png)
 
    比如之前在NIO中使用的`transferTo()`方法，就是利用了这种机制来实现零拷贝的。
+
+对比mmap和sendfile
+>mmap 适合小数据量读写，需要 4 次上下文切换，3 次数据拷贝；
+sendFile 适合大文件传输，需要 3 次上下文切换，最少 2 次数据拷贝。
+sendFile 可以利用 DMA 方式，减少 CPU 拷贝，mmap 则不能（必须从内核拷贝到 Socket缓冲区）。
 
 ## Netty工作模型
 
@@ -1132,17 +1138,32 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 
 ## 编码器和解码器
 
-在之前，数据发送和接收都是需要以ByteBuf形式传输，不太方便。
-参考一下JavaWeb那种搞个Filter，在开始处理数据之前，过滤一次，并在过滤的途中将数据转换成想要的类型，也可以将发出的数据进行转换，这就要用到编码器和解码器。
+### 介绍
 
-***
-**解码器：将接收到的数据转换成想要的类型**
+在之前，数据发送和接收都是需要以ByteBuf形式传输，不太方便。
+参考一下JavaWeb那种搞个Filter，在开始处理数据之前，过滤一次，并在过滤的途中将数据转换成想要的类型，也可以将发出的数据进行转换。
+
+>编写网络应用程序时，数据在网络中以二进制字节码形式传输，因此在发送数据时就需要编码，接收数据时就需要解码
+
+Netty 提供一系列实用的编码器，解码器，它们都实现了 ChannelInboundHadnler 或者 ChannelOutboundHandler 接口。在这些类中，channelRead 方法已经被重写了。
+
+当 Netty 发送或者接受一个消息的时候，就会发生一次数据转换。入站消息会被解码：从字节转换为另一种格式（比如 java 对象）；如果是出站消息，它会被编码成字节。
+
+### decoder解码器
+
+**解码器：把接收到的字节码数据转换成业务数据**
 解码器本质上也算是一种ChannelInboundHandlerAdapter，用于处理入站请求
 
-![image-20230306174321314](https://s2.loli.net/2023/03/06/x6Fh48G7PjZqHoW.png)
+Netty 提供的解码器
+* StringDecoder：对字符串数据进行解码
+* ObjectDecoder：对Java对象进行解码
+* 。。。
 
+**这里拿StringDecoder为例**
 它继承自MessageToMessageDecoder，用于将传入的Message转换为另一种类型
->除了MessageToMessageDecoder之外，还有其他类型的解码器，比如ByteToMessageDecoder等，Netty内置了很多的解码器实现来方便开发，比如HTTP，SMTP、MQTT等，以及Redis、Memcached、JSON等数据包。
+>除了MessageToMessageDecoder之外，还有其他类型的解码器，比如ByteToMessageDecoder等。Netty内置了很多的解码器实现来方便开发，比如HTTP，SMTP、MQTT等，以及Redis、Memcached、JSON等数据包。
+
+![image-20230306174321314](https://s2.loli.net/2023/03/06/x6Fh48G7PjZqHoW.png)
 
 比如想要直接在客户端或是服务端处理字符串，可以直接添加一个字符串解码器到流水线中：
 ```java
@@ -1193,10 +1214,20 @@ public class TestDecoder extends MessageToMessageDecoder<ByteBuf> {
 
 ![image-20230306174344121](https://s2.loli.net/2023/03/06/izRZ8t4BDXPeQbs.png)
 
+### encoder编码器
 
-***
-**编码器：对发出去的数据进行编码处理**
+**编码器：把将要发送出去的业务数据转换成字节码数据**
+编码器本质上也算是一种ChannelOutboundHandlerAdapter，用于处理出站请求
 
+Netty 提供的编码器
+* StringEncoder，对字符串数据进行编码
+* ObjectEncoder，对Java对象进行编码
+* 。。。
+
+**这里拿StringEncoder为例**
+
+![image-20230306174359121](https://s2.loli.net/2023/03/06/PruXKkgxhOf3bsJ.png)
+和解码器一样，直接把StringEncoder添加到流水线中就行了
 ```java
 channel.pipeline()
         //解码器本质上也算是一种ChannelInboundHandlerAdapter，用于处理入站请求
@@ -1210,10 +1241,6 @@ channel.pipeline()
         })
         .addLast(new StringEncoder());  //使用内置的StringEncoder可以直接将出站的字符串数据编码成ByteBuf
 ```
-
-StringEncoder本质上就是一个ChannelOutboundHandlerAdapter：
-
-![image-20230306174359121](https://s2.loli.net/2023/03/06/PruXKkgxhOf3bsJ.png)
 
 ***
 **把客户端也改成使用编码、解码器**：
@@ -1250,8 +1277,9 @@ public static void main(String[] args) {
 }
 ```
 
-***
-除了编码器和解码器之外，还有**编解码器**（缝合怪）
+### codec编解码器
+
+codec（编解码器）由decoder（解码器）和 encoder（编码器）组成，其实就是个缝合怪
 
 ![image-20230306174419482](https://s2.loli.net/2023/03/06/CpcgbnRwSk6dIF5.png)
 
@@ -1308,8 +1336,10 @@ channel.pipeline()
 
 ![image-20230306174519936](https://s2.loli.net/2023/03/06/7f9LpaTQ8OcqMeN.png)
 
-***
-**使用一个解码器解决粘包/拆包问题**
+### 解决粘包/拆包问题
+
+Netty中，使用一个解码器就可以解决粘包/拆包问题了
+有以下多种方案
 
 ```java
 channel.pipeline()
@@ -1345,6 +1375,17 @@ channel.pipeline()
         .addLast(new LengthFieldPrepender(4))   //客户端在发送时也需要将长度拼到前面去
         .addLast(new StringEncoder());
 ```
+
+## Google Protobuf
+
+Netty 本身自带的 ObjectDecoder 和 ObjectEncoder 可以用来实现 POJO 对象或各种业务对象的编码和解码，底层使用的是Java序列化技术。
+
+而Java序列化存在如下问题：
+* 无法跨语言
+* 序列化后的体积太大，是二进制编码的5倍多。
+* 序列化性能太低
+
+引出新的解决方案：Google 的 Protobuf
 
 ## 实现HTTP协议通信
 
