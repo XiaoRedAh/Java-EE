@@ -133,6 +133,14 @@ Netty实际上应用场景非常多
 </dependencies>
 ```
 
+# 参考文章
+
+[Netty全过程图解](https://blog.csdn.net/qq_38685503/article/details/114168722)
+
+[Netty专题学习](https://www.cnblogs.com/kubixuesheng/category/932053.html)
+
+公众号：bin的技术小屋
+
 ## ByteBuf
 
 Netty并没有使用NIO中提供的ByteBuffer来进行数据装载，而是自行定义了一个ByteBuf类。
@@ -1470,7 +1478,12 @@ channel.pipeline()
 
 浏览器成功接收到服务器响应，然后控制台打印了以下类型：
 一次请求是一个DefaultHttpRequest+LastHttpContent$1，这里有两组是因为浏览器请求了一个地址之后，紧接着请求了网站的favicon图标。
-![image-20230306174542903](https://s2.loli.net/2023/03/06/WoCXiKelwzmYnQI.png)
+```
+收到客户端数据：class io.netty.handler.codec.http.DefaultHttpRequest
+收到客户端数据：class io.netty.handler.codec.http.LastHttpContent$1
+收到客户端数据：class io.netty.handler.codec.http.DefaultHttpRequest
+收到客户端数据：class io.netty.handler.codec.http.LastHttpContent$1
+```
 
 这样把数据分开处理肯定是不行的，直接整合成一个：
 
@@ -1494,7 +1507,10 @@ channel.pipeline()
 
 再次访问，可以正常读取请求路径了：
 
-![image-20230306174557790](https://s2.loli.net/2023/03/06/P3QRD2kHme1Vhga.png)
+```
+浏览器请求路径：/
+浏览器请求路径：/favicon.ico
+```
 
 搞个静态页面代理玩玩：
 全部放进Resource文件夹，一会根据浏览器的请求路径，就可以返回对应的页面了
