@@ -1,51 +1,46 @@
 # 多线程编程核心
 
-在前面，我们了解了多线程的底层运作机制，我们终于知道，原来多线程环境下存在着如此之多的问题。在JDK5之前，我们只能选择`synchronized`关键字来实现锁，而JDK5之后，由于`volatile`关键字得到了升级（具体功能就是上一章所描述的），所以并发框架包便出现了，相比传统的`synchronized`关键字，我们对于锁的实现，有了更多的选择。
-
-> Doug Lea — JUC并发包的作者
->
-> 如果IT的历史，是以人为主体串接起来的话，那么肯定少不了Doug Lea。这个鼻梁挂着眼镜，留着德王威廉二世的胡子，脸上永远挂着谦逊腼腆笑容，服务于纽约州立大学Oswego分校计算机科学系的老大爷。
->
-> 说他是这个世界上对Java影响力最大的一个人，一点也不为过。因为两次Java历史上的大变革，他都间接或直接的扮演了举足轻重的角色。2004年所推出的Tiger。Tiger广纳了15项JSRs(Java Specification Requests)的语法及标准，其中一项便是JSR-166。JSR-166是来自于Doug编写的util.concurrent包。
-
-那么，从这章开始，就让我们来感受一下，JUC为我们带来了什么。
-
-***
+在JDK5之前，只能选择`synchronized`关键字来实现锁，而JDK5之后，由于`volatile`关键字得到了升级，所以并发框架包便出现了，相比传统的`synchronized`关键字，在锁的实现上有了更多的选择。
 
 ## 锁框架
 
 在JDK 5之后，并发包中新增了Lock接口（以及相关实现类）用来实现锁功能，Lock接口提供了与synchronized关键字类似的同步功能，但需要在使用时手动获取锁和释放锁。
 
-### Lock和Condition接口
+### Lock接口
 
-使用并发包中的锁和我们传统的`synchronized`锁不太一样，这里的锁我们可以认为是一把真正意义上的锁，每个锁都是一个对应的锁对象，我只需要向锁对象获取锁或是释放锁即可。我们首先来看看，此接口中定义了什么：
+并发包中的锁和传统的`synchronized`锁不太一样
+并发包中的锁可以认为是一把真正意义上的锁，每个锁都是一个对应的锁对象，只需要向锁对象获取锁或是释放锁即可
 
+Lock接口：
 ```java
 public interface Lock {
-  	//获取锁，拿不到锁会阻塞，等待其他线程释放锁，获取到锁后返回
+    //获取锁，拿不到锁会阻塞，等待其他线程释放锁，获取到锁后返回
     void lock();
-  	//同上，但是等待过程中会响应中断
+    //同上，但是等待过程中会响应中断
     void lockInterruptibly() throws InterruptedException;
-  	//尝试获取锁，但是不会阻塞，如果能获取到会返回true，不能返回false
+    //尝试获取锁，但是不会阻塞，如果能获取到会返回true，不能返回false
     boolean tryLock();
-  	//尝试获取锁，但是可以限定超时时间，如果超出时间还没拿到锁返回false，否则返回true，可以响应中断
+    //尝试获取锁，但是可以限定超时时间，如果超出时间还没拿到锁返回false，否则返回true，可以响应中断
     boolean tryLock(long time, TimeUnit unit) throws InterruptedException;
-  	//释放锁
+    //释放锁
     void unlock();
-  	//暂时可以理解为替代传统的Object的wait()、notify()等操作的工具
+    //暂时可以理解为替代传统的Object的wait()、notify()等操作的工具
     Condition newCondition();
 }
 ```
 
-这里我们可以演示一下，如何使用Lock类来进行加锁和释放锁操作：
+***
+例：**使用Lock类来进行加锁和释放锁操作**
+和使用`synchronized`相比，这里是真正在操作一个"锁"对象。当需要加锁时，调用`lock()`方法；需要释放锁时，调用`unlock()`方法。程序运行的最终结果和使用`synchronized`锁是一样的。
 
 ```java
 public class Main {
     private static int i = 0;
     public static void main(String[] args) throws InterruptedException {
-        Lock testLock = new ReentrantLock();   //可重入锁ReentrantLock类是Lock类的一个实现，我们后面会进行介绍
+        //可重入锁ReentrantLock类是Lock类的一个实现
+        Lock testLock = new ReentrantLock();   
         Runnable action = () -> {
-            for (int j = 0; j < 100000; j++) {   //还是以自增操作为例
+            for (int j = 0; j < 100000; j++) {   //以自增操作为例
                 testLock.lock();    //加锁，加锁成功后其他线程如果也要获取锁，会阻塞，等待当前线程释放
                 i++;
                 testLock.unlock();  //解锁，释放锁之后其他线程就可以获取这把锁了（注意在这之前一定得加锁，不然报错）
@@ -59,14 +54,16 @@ public class Main {
 }
 ```
 
-可以看到，和我们之前使用`synchronized`相比，我们这里是真正在操作一个"锁"对象，当我们需要加锁时，只需要调用`lock()`方法，而需要释放锁时，只需要调用`unlock()`方法。程序运行的最终结果和使用`synchronized`锁是一样的。
+### Condition接口
 
-那么，我们如何像传统的加锁那样，调用对象的`wait()`和`notify()`方法呢，并发包提供了Condition接口：
+如果想像传统的加锁那样，调用对象的`wait()`和`notify()`方法，则需要使用到Condition接口
+
+Condition接口：
 
 ```java
 public interface Condition {
   	//与调用锁对象的wait方法一样，会进入到等待状态，但是这里需要调用Condition的signal或signalAll方法进行唤醒（感觉就是和普通对象的wait和notify是对应的）同时，等待状态下是可以响应中断的
- 		void await() throws InterruptedException;
+        void await() throws InterruptedException;
   	//同上，但不响应中断（看名字都能猜到）
   	void awaitUninterruptibly();
   	//等待指定时间，如果在指定时间（纳秒）内被唤醒，会返回剩余时间，如果超时，会返回0或负数，可以响应中断
@@ -82,7 +79,9 @@ public interface Condition {
 }
 ```
 
-这里我们通过一个简单的例子来演示一下：
+***
+**例**
+可以发现，Condition对象使用方法和传统的对象使用差别不是很大。
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -110,9 +109,9 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以发现，Condition对象使用方法和传统的对象使用差别不是很大。
-
-**思考：**下面这种情况跟上面有什么不同？
+如果是按照下面代码块那样写
+调用`newCondition()`后，会生成一个新的Condition对象，并且同一把锁内是可以存在多个Condition对象的（实际上原始的锁机制等待队列只能有一个，而这里可以创建很多个Condition来实现多等待队列）
+因此下面这段代码，实际上使用的是不同的Condition对象，而只有对同一个Condition对象进行等待和唤醒操作才会有效，不同的Condition对象是分开计算的。
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -139,10 +138,10 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-通过分析可以得到，在调用`newCondition()`后，会生成一个新的Condition对象，并且同一把锁内是可以存在多个Condition对象的（实际上原始的锁机制等待队列只能有一个，而这里可以创建很多个Condition来实现多等待队列），而上面的例子中，实际上使用的是不同的Condition对象，只有对同一个Condition对象进行等待和唤醒操作才会有效，而不同的Condition对象是分开计算的。
+### 时间工具类
 
-最后我们再来讲解一下时间单位，这是一个枚举类，也是位于`java.util.concurrent`包下：
-
+位于`java.util.concurrent`包下：
+时间单位有很多的，比如`DAY`、`SECONDS`、`MINUTES`等，可以直接将其作为时间单位
 ```java
 public enum TimeUnit {
     /**
@@ -162,7 +161,9 @@ public enum TimeUnit {
   	//....
 ```
 
-可以看到时间单位有很多的，比如`DAY`、`SECONDS`、`MINUTES`等，我们可以直接将其作为时间单位，比如我们要让一个线程等待3秒钟，可以像下面这样编写：
+***
+
+让一个线程等待3秒钟，可以像下面这样编写：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -170,7 +171,7 @@ public static void main(String[] args) throws InterruptedException {
     new Thread(() -> {
         testLock.lock();
         try {
-            System.out.println("等待是否未超时："+testLock.newCondition().await(1, TimeUnit.SECONDS));
+            System.out.println("等待是否未超时："+testLock.newCondition().await(3, TimeUnit.SECONDS));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -179,8 +180,9 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-当然，Lock类的tryLock方法也是支持使用时间单位的，各位可以自行进行测试。TimeUnit除了可以作为时间单位表示以外，还可以在不同单位之间相互转换：
+Lock类的tryLock方法也是支持使用时间单位的，可以自行进行测试。
 
+TimeUnit除了可以作为时间单位表示以外，还可以在不同单位之间相互转换：
 ```java
 public static void main(String[] args) throws InterruptedException {
     System.out.println("60秒 = "+TimeUnit.SECONDS.toMinutes(60) +"分钟");
@@ -200,7 +202,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-我们也可以直接使用它来进行休眠操作：
+直接使用它来进行休眠操作：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -210,8 +212,10 @@ public static void main(String[] args) throws InterruptedException {
 
 ### 可重入锁
 
-前面，我们讲解了锁框架的两个核心接口，那么我们接着来看看锁接口的具体实现类，我们前面用到了ReentrantLock，它其实是锁的一种，叫做可重入锁，那么这个可重入代表的是什么意思呢？简单来说，就是同一个线程，可以反复进行加锁操作：
+ReentrantLock是锁接口的一个具体实现类，叫做可重入锁。简单来说，就是同一个线程，可以反复进行加锁操作：
 
+
+主线程连续进行了两次加锁操作（此操作是不会被阻塞的），在当前线程持有锁的情况下继续加锁不会被阻塞，并且，加锁几次，就必须要解锁几次，否则此线程依旧持有锁。
 ```java
 public static void main(String[] args) throws InterruptedException {
     ReentrantLock lock = new ReentrantLock();
@@ -230,8 +234,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以看到，主线程连续进行了两次加锁操作（此操作是不会被阻塞的），在当前线程持有锁的情况下继续加锁不会被阻塞，并且，加锁几次，就必须要解锁几次，否则此线程依旧持有锁。我们可以使用`getHoldCount()`方法查看当前线程的加锁次数：
-
+使用`getHoldCount()`方法查看当前线程的加锁次数：
 ```java
 public static void main(String[] args) throws InterruptedException {
     ReentrantLock lock = new ReentrantLock();
@@ -247,9 +250,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以看到，当锁不再被任何线程持有时，值为`0`，并且通过`isLocked()`方法查询结果为`false`。
-
-实际上，如果存在线程持有当前的锁，那么其他线程在获取锁时，是会暂时进入到等待队列的，我们可以通过`getQueueLength()`方法获取等待中线程数量的预估值：
+如果存在线程持有当前的锁，那么其他线程在获取锁时，会暂时进入到等待队列，可以通过`getQueueLength()`方法获取等待队列中线程数量的预估值：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -266,9 +267,10 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-我们可以通过`hasQueuedThread()`方法来判断某个线程是否正在等待获取锁状态。
+通过`hasQueuedThread()`方法来判断某个线程是否正在等待获取锁状态。
 
 同样的，Condition也可以进行判断：
+通过使用`getWaitQueueLength()`方法能够查看同一个Condition目前有多少线程处于等待状态。
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -292,11 +294,11 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-通过使用`getWaitQueueLength()`方法能够查看同一个Condition目前有多少线程处于等待状态。
-
 #### 公平锁与非公平锁
 
-前面我们了解了如果线程之间争抢同一把锁，会暂时进入到等待队列中，那么多个线程获得锁的顺序是不是一定是根据线程调用`lock()`方法时间来定的呢，我们可以看到，`ReentrantLock`的构造方法中，是这样写的：
+如果线程之间争抢同一把锁，会暂时进入到等待队列中，那么多个线程获得锁的顺序是不是一定是根据线程调用`lock()`方法时间来定的呢
+
+`ReentrantLock`的构造方法中，是这样写的：
 
 ```java
 public ReentrantLock() {
@@ -304,69 +306,36 @@ public ReentrantLock() {
 }
 ```
 
-其实锁分为公平锁和非公平锁，默认我们创建出来的ReentrantLock是采用的非公平锁作为底层锁机制。那么什么是公平锁什么又是非公平锁呢？
+其实锁分为公平锁和非公平锁，默认创建出来的ReentrantLock是非公平锁
 
 * 公平锁：多个线程按照申请锁的顺序去获得锁，线程会直接进入队列去排队，永远都是队列的第一位才能得到锁。
 * 非公平锁：多个线程去获取锁的时候，会直接去尝试获取，获取不到，再去进入等待队列，如果能获取到，就直接获取到锁。
 
 简单来说，公平锁不让插队，都老老实实排着；非公平锁让插队，但是排队的人让不让你插队就是另一回事了。
 
-我们可以来测试一下公平锁和非公平锁的表现情况：
-
-```java
-public ReentrantLock(boolean fair) {
-    sync = fair ? new FairSync() : new NonfairSync();
-}
-```
-
-这里我们选择使用第二个构造方法，可以选择是否为公平锁实现：
-
-```java
-public static void main(String[] args) throws InterruptedException {
-    ReentrantLock lock = new ReentrantLock(false);
-
-    Runnable action = () -> {
-        System.out.println("线程 "+Thread.currentThread().getName()+" 开始获取锁...");
-        lock.lock();
-        System.out.println("线程 "+Thread.currentThread().getName()+" 成功获取锁！");
-        lock.unlock();
-    };
-    for (int i = 0; i < 10; i++) {   //建立10个线程
-        new Thread(action, "T"+i).start();
-    }
-}
-```
-
-这里我们只需要对比`将在1秒后开始获取锁...`和`成功获取锁！`的顺序是否一致即可，如果是一致，那说明所有的线程都是按顺序排队获取的锁，如果不是，那说明肯定是有线程插队了。
-
-运行结果可以发现，在公平模式下，确实是按照顺序进行的，而在非公平模式下，一般会出现这种情况：线程刚开始获取锁马上就能抢到，并且此时之前早就开始的线程还在等待状态，很明显的插队行为。
-
-那么，接着下一个问题，公平锁在任何情况下都一定是公平的吗？有关这个问题，我们会留到队列同步器中再进行讨论。
-
-***
-
 ### 读写锁
 
-除了可重入锁之外，还有一种类型的锁叫做读写锁，当然它并不是专门用作读写操作的锁，它和可重入锁不同的地方在于，可重入锁是一种排他锁，当一个线程得到锁之后，另一个线程必须等待其释放锁，否则一律不允许获取到锁。而读写锁在同一时间，是可以让多个线程获取到锁的，它其实就是针对于读写场景而出现的。
+读写锁并不是专门用作读写操作的锁，它和可重入锁不同的地方在于，可重入锁是一种排他锁，当一个线程得到锁之后，另一个线程必须等待其释放锁，否则一律不允许获取到锁。
+而读写锁在同一时间，是可以让多个线程获取到锁的，它其实就是针对于读写场景而出现的。
 
 读写锁维护了一个读锁和一个写锁，这两个锁的机制是不同的。
 
 * 读锁：在没有任何线程占用写锁的情况下，同一时间可以有多个线程加读锁。
 * 写锁：在没有任何线程占用读锁的情况下，同一时间只能有一个线程加写锁。
 
-读写锁也有一个专门的接口：
-
+读写锁也有一个专门的接口ReadWriteLock：
 ```java
 public interface ReadWriteLock {
     //获取读锁
     Lock readLock();
 
-  	//获取写锁
+    //获取写锁
     Lock writeLock();
 }
 ```
 
-此接口有一个实现类ReentrantReadWriteLock（实现的是ReadWriteLock接口，不是Lock接口，它本身并不是锁），注意我们操作ReentrantReadWriteLock时，不能直接上锁，而是需要获取读锁或是写锁，再进行锁操作：
+此接口有一个实现类ReentrantReadWriteLock（实现的是ReadWriteLock接口，不是Lock接口，它本身并不是锁）
+操作ReentrantReadWriteLock时，不能直接上锁，而是需要获取读锁或是写锁，再进行锁操作：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -376,7 +345,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-这里我们对读锁加锁，可以看到可以多个线程同时对读锁加锁。
+多个线程同时对读锁加锁。
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -415,29 +384,10 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-通过之前的例子来验证公平和非公平：
-
-```java
-public static void main(String[] args) throws InterruptedException {
-    ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
-
-    Runnable action = () -> {
-        System.out.println("线程 "+Thread.currentThread().getName()+" 将在1秒后开始获取锁...");
-        lock.writeLock().lock();
-        System.out.println("线程 "+Thread.currentThread().getName()+" 成功获取锁！");
-        lock.writeLock().unlock();
-    };
-    for (int i = 0; i < 10; i++) {   //建立10个线程
-        new Thread(action, "T"+i).start();
-    }
-}
-```
-
-可以看到，结果是一致的。
-
 #### 锁降级和锁升级
 
-锁降级指的是写锁降级为读锁。当一个线程持有写锁的情况下，虽然其他线程不能加读锁，但是线程自己是可以加读锁的：
+**锁降级**指的是写锁降级为读锁。
+当一个线程持有写锁的情况下，虽然其他线程不能加读锁，但是线程自己是可以加读锁的：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -448,8 +398,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-那么，如果我们在同时加了写锁和读锁的情况下，释放写锁，是否其他的线程就可以一起加读锁了呢？
-
+在同时加了写锁和读锁的情况下，一旦写锁被释放，那么当前线程就只剩下读锁了，因为读锁可以被多个线程共享，所以这时其他线程都可以添加读锁。这种操作，就被称之为"锁降级"（注意不是先释放写锁再加读锁，而是持有写锁的情况下申请读锁再释放写锁）
 ```java
 public static void main(String[] args) throws InterruptedException {
     ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -465,9 +414,10 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以看到，一旦写锁被释放，那么主线程就只剩下读锁了，因为读锁可以被多个线程共享，所以这时第二个线程也添加了读锁。而这种操作，就被称之为"锁降级"（注意不是先释放写锁再加读锁，而是持有写锁的情况下申请读锁再释放写锁）
+***
+**锁升级**
 
-注意在仅持有读锁的情况下去申请写锁，属于"锁升级"，ReentrantReadWriteLock是不支持的：
+在仅持有读锁的情况下去申请写锁，属于"锁升级"，ReentrantReadWriteLock是不支持的：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -478,7 +428,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以看到线程直接卡在加写锁的那一句了。
+可以看到线程直接卡在加写锁的那一句。
 
 ### 队列同步器AQS
 
@@ -1210,9 +1160,9 @@ public class Main {
 
 ## 原子类
 
-前面我们讲解了锁框架的使用和实现原理，虽然比较复杂，但是收获还是很多的（主要是观摩大佬写的代码）这一部分我们就来讲一点轻松的。
+之前举过的例子，如果要保证`i++`的原子性，当时唯一选择就是加锁
 
-前面我们说到，如果要保证`i++`的原子性，那么我们的唯一选择就是加锁，那么，除了加锁之外，还有没有其他更好的解决方法呢？JUC为我们提供了原子类，底层采用CAS算法，它是一种用法简单、性能高效、线程安全地更新变量的方式。
+除了加锁之外，JUC提供了原子类，底层采用CAS算法，它是一种用法简单、性能高效、线程安全地更新变量的方式。
 
 所有的原子类都位于`java.util.concurrent.atomic`包下。
 
@@ -1224,29 +1174,10 @@ public class Main {
 * AtomicLong：原子更新long
 * AtomicBoolean：原子更新boolean
 
-那么，原子类和普通的基本类在使用上有没有什么区别呢？我们先来看正常情况下使用一个基本类型：
 
-```java
-public class Main {
-    public static void main(String[] args) {
-        int i = 1;
-        System.out.println(i++);
-    }
-}
-```
-
-现在我们使用int类型对应的原子类，要实现同样的代码该如何编写：
-
-```java
-public class Main {
-    public static void main(String[] args) {
-        AtomicInteger i = new AtomicInteger(1);
-        System.out.println(i.getAndIncrement());  //如果想实现i += 2这种操作，可以使用 addAndGet() 自由设置delta 值
-    }
-}
-```
-
-我们可以将int数值封装到此类中（注意必须调用构造方法，它不像Integer那样有装箱机制），并且通过调用此类提供的方法来获取或是对封装的int值进行自增，乍一看，这不就是基本类型包装类嘛，有啥高级的。确实，还真有包装类那味，但是它可不仅仅是简单的包装，它的自增操作是具有原子性的：
+将int数值封装到AtomicInteger类中，必须调用构造方法，它不像Integer那样有装箱机制。
+通过调用此类提供的方法来获取或是对封装的int值进行自增
+但是它可不仅仅是简单的包装，同样是直接进行自增操作，使用原子类是可以保证自增操作原子性的
 
 ```java
 public class Main {
@@ -1265,7 +1196,8 @@ public class Main {
 }
 ```
 
-同样是直接进行自增操作，我们发现，使用原子类是可以保证自增操作原子性的，就跟我们前面加锁一样。怎么会这么神奇？我们来看看它的底层是如何实现的，直接从构造方法点进去：
+它的底层是如何实现的，直接从构造方法点进去：
+它的底层就是封装了一个`volatile`类型的int值，这样能够保证可见性，在CAS操作的时候不会出现问题。
 
 ```java
 private volatile int value;
@@ -1278,7 +1210,7 @@ public AtomicInteger() {
 }
 ```
 
-可以看到，它的底层是比较简单的，其实本质上就是封装了一个`volatile`类型的int值，这样能够保证可见性，在CAS操作的时候不会出现问题。
+可以看到最上面是和AQS采用了类似的机制，因为要使用CAS算法更新value的值，所以得先计算出value字段在对象中的偏移地址，CAS直接修改对应位置的内存即可（可见Unsafe类的作用巨大，很多的底层操作都要靠它来完成）
 
 ```java
 private static final Unsafe unsafe = Unsafe.getUnsafe();
@@ -1292,9 +1224,7 @@ static {
 }
 ```
 
-可以看到最上面是和AQS采用了类似的机制，因为要使用CAS算法更新value的值，所以得先计算出value字段在对象中的偏移地址，CAS直接修改对应位置的内存即可（可见Unsafe类的作用巨大，很多的底层操作都要靠它来完成）
-
-接着我们来看自增操作是怎么在运行的：
+接着来看自增操作是怎么在运行的：
 
 ```java
 public final int getAndIncrement() {
@@ -1302,7 +1232,9 @@ public final int getAndIncrement() {
 }
 ```
 
-可以看到这里调用了`unsafe.getAndAddInt()`，套娃时间到，我们接着看看Unsafe里面写了什么：
+可以看到这里调用了`unsafe.getAndAddInt()`，然后就是套娃
+
+接着看看Unsafe里面写了什么：
 
 ```java
 public final int getAndAddInt(Object o, long offset, int delta) {  //delta就是变化的值，++操作就是自增1
@@ -1316,11 +1248,13 @@ public final int getAndAddInt(Object o, long offset, int delta) {  //delta就是
 }
 ```
 
-可以看到这是一个`do-while`循环，那么这个循环在做一个什么事情呢？感觉就和我们之前讲解的AQS队列中的机制差不多，也是采用自旋形式，来不断进行CAS操作，直到成功。
+这个`do-while`循环在做一个什么事情呢？感觉和AQS队列中的机制差不多，也是采用自旋形式，来不断进行CAS操作，直到成功。
 
 ![image-20230306171720896](https://s2.loli.net/2023/03/06/JL3ZjbmwFW67tOM.png)
 
-可见，原子类底层也是采用了CAS算法来保证的原子性，包括`getAndSet`、`getAndAdd`等方法都是这样。原子类也直接提供了CAS操作方法，我们可以直接使用：
+可见，原子类底层也是采用了CAS算法来保证的原子性，包括`getAndSet`、`getAndAdd`等方法都是这样。
+
+原子类也直接提供了CAS操作方法，可以直接使用：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -1360,7 +1294,8 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-在JDK8之后，新增了`DoubleAdder`和`LongAdder`，在高并发情况下，`LongAdder`的性能比`AtomicLong`的性能更好，主要体现在自增上，它的大致原理如下：在低并发情况下，和`AtomicLong`是一样的，对value值进行CAS操作，但是出现高并发的情况时，`AtomicLong`会进行大量的循环操作来保证同步，而`LongAdder`会将对value值的CAS操作分散为对数组`cells`中多个元素的CAS操作（内部维护一个Cell[] as数组，每个Cell里面有一个初始值为0的long型变量，在高并发时会进行分散CAS，就是不同的线程可以对数组中不同的元素进行CAS自增，这样就避免了所有线程都对同一个值进行CAS），只需要最后再将结果加起来即可。
+在JDK8之后，新增了`DoubleAdder`和`LongAdder`，在高并发情况下，`LongAdder`的性能比`AtomicLong`的性能更好，主要体现在自增上，它的大致原理如下：
+在低并发情况下，和`AtomicLong`是一样的，对value值进行CAS操作，但是出现高并发的情况时，`AtomicLong`会进行大量的循环操作来保证同步，而`LongAdder`会将对value值的CAS操作分散为对数组`cells`中多个元素的CAS操作（内部维护一个Cell[] as数组，每个Cell里面有一个初始值为0的long型变量，在高并发时会进行分散CAS，就是不同的线程可以对数组中不同的元素进行CAS自增，这样就避免了所有线程都对同一个值进行CAS），只需要最后再将结果加起来即可。
 
 ![image-20230306171732740](https://s2.loli.net/2023/03/06/KksGxhMYABe7nED.png)
 
@@ -1450,19 +1385,15 @@ public class Main {
 }
 ```
 
-了解了这么多原子类，是不是感觉要实现保证原子性的工作更加轻松了？
-
 ### ABA问题及解决方案
 
-我们来想象一下这种场景：
+想象一下这种场景：
+线程1和线程2同时开始对`a`的值进行CAS修改，但是线程1的速度比较快，将a的值修改为2之后紧接着又修改回1，这时线程2才开始进行判断，发现a的值是1，所以CAS操作成功。
+很明显，这里的1已经不是一开始的那个1了，而是被重新赋值的1，这也是CAS操作存在的问题（无锁虽好，但是问题多多），它只会机械地比较当前值是不是预期值，但是并不会关心当前值是否被修改过，这种问题称之为`ABA`问题。
 
 ![image-20230306171801800](https://s2.loli.net/2023/03/06/KQjEvX1ZxohMT3l.png)
 
-线程1和线程2同时开始对`a`的值进行CAS修改，但是线程1的速度比较快，将a的值修改为2之后紧接着又修改回1，这时线程2才开始进行判断，发现a的值是1，所以CAS操作成功。
-
-很明显，这里的1已经不是一开始的那个1了，而是被重新赋值的1，这也是CAS操作存在的问题（无锁虽好，但是问题多多），它只会机械地比较当前值是不是预期值，但是并不会关心当前值是否被修改过，这种问题称之为`ABA`问题。
-
-那么如何解决这种`ABA`问题呢，JUC提供了带版本号的引用类型，只要每次操作都记录一下版本号，并且版本号不会重复，那么就可以解决ABA问题了：
+JUC提供了带版本号的引用类型，只要每次操作都记录一下版本号，并且版本号不会重复，那么就可以解决ABA问题了：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -1473,10 +1404,6 @@ public static void main(String[] args) throws InterruptedException {
     System.out.println(reference.compareAndSet(a, b, 2, 3));   //CAS操作时不仅需要提供预期值和修改值，还要提供预期版本号和新的版本号
 }
 ```
-
-至此，有关原子类的讲解就到这里。
-
-***
 
 ## 并发容器
 
