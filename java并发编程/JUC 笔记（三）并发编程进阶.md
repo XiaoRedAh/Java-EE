@@ -919,20 +919,21 @@ final void tryTerminate() {
 
 OK，有关线程池的实现原理，我们就暂时先介绍到这里，关于更高级的定时任务线程池，这里就不做讲解了。
 
-***
+# 并发工具类
 
-## 并发工具类
+## 计数器锁 CountDownLatch
 
-### 计数器锁 CountDownLatch
+多任务同步神器。它允许一个或多个线程，等待其他线程完成工作
 
-多任务同步神器。它允许一个或多个线程，等待其他线程完成工作，比如现在我们有这样的一个需求：
+比如现在有这样的一个需求：
+>有20个计算任务，需要先将这些任务的结果全部计算出来，每个任务的执行时间未知
+当所有任务结束之后，立即整合统计最终结果
 
-* 有20个计算任务，我们需要先将这些任务的结果全部计算出来，每个任务的执行时间未知
-* 当所有任务结束之后，立即整合统计最终结果
+这个需求有一个难点：任务到底什么时候执行完毕是未知的。
+最直观的就是将最终统计操作延时进行，但无论延迟多久进行，要么不能保证所有任务都完成，要么可能所有任务都已完成，还在那等。
 
-要实现这个需求，那么有一个很麻烦的地方，我们不知道任务到底什么时候执行完毕，那么可否将最终统计延迟一定时间进行呢？但是最终统计无论延迟多久进行，要么不能保证所有任务都完成，要么可能所有任务都完成了而这里还在等。
-
-所以说，我们需要一个能够实现子任务同步的工具。
+所以需要一个能够实现子任务同步的工具。
+调用`await()`方法之后，实际上就是一个等待计数器衰减为0的过程，而进行自减操作则由各个子线程来完成，当子线程完成工作后，那么就将计数器-1，所有的子线程完成之后，计数器为0，结束等待。
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -958,10 +959,9 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-我们在调用`await()`方法之后，实际上就是一个等待计数器衰减为0的过程，而进行自减操作则由各个子线程来完成，当子线程完成工作后，那么就将计数器-1，所有的子线程完成之后，计数器为0，结束等待。
+***
 
-那么它是如何实现的呢？实现 原理非常简单：
-
+**实现原理**
 ```java
 public class CountDownLatch {
    	//同样是通过内部类实现AbstractQueuedSynchronizer
@@ -1029,15 +1029,14 @@ public class CountDownLatch {
 }
 ```
 
-在深入讲解之前，我们先大致了解一下CountDownLatch的基本实现思路：
+大致了解一下CountDownLatch的基本实现思路：
 
 * 利用共享锁实现
 * 在一开始的时候就是已经上了count层锁的状态，也就是`state = count`
 * `await()`就是加共享锁，但是必须`state`为`0`才能加锁成功，否则按照AQS的机制，会进入等待队列阻塞，加锁成功后结束阻塞
 * `countDown()`就是解`1`层锁，也就是靠这个方法一点一点把`state`的值减到`0`
 
-由于我们前面只对独占锁进行了讲解，没有对共享锁进行讲解，这里还是稍微提一下它：
-
+共享锁：
 ```java
 public final void acquireShared(int arg) {
     if (tryAcquireShared(arg) < 0)   //上来就调用tryAcquireShared尝试以共享模式获取锁，小于0则失败，上面判断的是state==0返回1，否则-1，也就是说如果计数器不为0，那么这里会判断成功
@@ -1091,8 +1090,7 @@ private void setHeadAndPropagate(Node node, int propagate) {
 }
 ```
 
-我们接着来看，它的countdown过程：
-
+countdown过程：
 ```java
 public final boolean releaseShared(int arg) {
     if (tryReleaseShared(arg)) {   //直接尝试释放锁，如果成功返回true（在CountDownLatch中只有state减到0的那一次，会返回true）
@@ -1125,7 +1123,8 @@ private void doReleaseShared() {
 }
 ```
 
-可能看完之后还是有点乱，我们再来理一下：
+***
+**总结**
 
 * 共享锁是线程共享的，同一时刻能有多个线程拥有共享锁。
 * 如果一个线程刚获取了共享锁，那么在其之后等待的线程也很有可能能够获取到锁，所以得传播下去继续尝试唤醒后面的结点，不像独占锁，独占的压根不需要考虑这些。
@@ -1133,12 +1132,15 @@ private void doReleaseShared() {
 
 回到CountDownLatch，再结合整个AQS共享锁的实现机制，进行一次完整的推导，看明白还是比较简单的。
 
-### 循环屏障 CyclicBarrier
+## 循环屏障 CyclicBarrier
 
-好比一场游戏，我们必须等待房间内人数足够之后才能开始，并且游戏开始之后玩家需要同时进入游戏以保证公平性。
+**需求**
+>一场游戏，必须等待房间内人数足够之后才能开始，并且游戏开始之后玩家需要同时进入游戏以保证公平性。
+假如现在游戏房间内一共5人，但是游戏开始需要10人，所以必须等待剩下5人到来之后才能开始游戏，并且保证游戏开始时所有玩家都是同时进入
 
-假如现在游戏房间内一共5人，但是游戏开始需要10人，所以我们必须等待剩下5人到来之后才能开始游戏，并且保证游戏开始时所有玩家都是同时进入，那么怎么实现这个功能呢？我们可以使用CyclicBarrier，翻译过来就是循环屏障，那么这个屏障正式为了解决这个问题而出现的。
+CyclicBarrier循环屏障就是为了解决这个问题而出现的
 
+循环屏障会不断阻挡线程，直到被阻挡的线程足够多时，才能一起冲破屏障，并且在冲破屏障时，可以做一些其他的任务
 ```java
 public static void main(String[] args) {
     CyclicBarrier barrier = new CyclicBarrier(10,   //创建一个初始值为10的循环屏障
@@ -1162,7 +1164,8 @@ public static void main(String[] args) {
 }
 ```
 
-可以看到，循环屏障会不断阻挡线程，直到被阻挡的线程足够多时，才能一起冲破屏障，并且在冲破屏障时，我们也可以做一些其他的任务。这和人多力量大的道理是差不多的，当人足够多时方能冲破阻碍，到达美好的明天。当然，屏障由于是可循环的，所以它在被冲破后，会重新开始计数，继续阻挡后续的线程：
+屏障由于是可循环的，所以它在被冲破后，会重新开始计数，继续阻挡后续的线程。
+下面这段代码，通过使用循环屏障，可以对线程进行一波一波地放行，每一波都放行5个线程
 
 ```java
 public static void main(String[] args) {
@@ -1187,7 +1190,8 @@ public static void main(String[] args) {
 }
 ```
 
-可以看到，通过使用循环屏障，我们可以对线程进行一波一波地放行，每一波都放行5个线程，当然除了自动重置之外，我们也可以调用`reset()`方法来手动进行重置操作，同样会重新计数：
+除了自动重置，也可以调用`reset()`方法来手动进行重置操作，重新计数：
+在调用`reset()`之后，处于等待状态下的线程，全部被中断并且抛出BrokenBarrierException异常，循环屏障等待线程数归零。
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -1210,7 +1214,8 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以看到，在调用`reset()`之后，处于等待状态下的线程，全部被中断并且抛出BrokenBarrierException异常，循环屏障等待线程数归零。那么要是处于等待状态下的线程被中断了呢？屏障的线程等待数量会不会自动减少？
+那么要是处于等待状态下的线程被中断了呢？屏障的线程等待数量会不会自动减少？
+可以看到，当`await()`状态下的线程被中断，那么屏障会直接变成损坏状态，一旦屏障损坏，那么这一轮就无法再做任何等待操作了。也就是说，本来大家计划一起合力冲破屏障，结果有一个人摆烂中途退出了，那么所有人的努力都前功尽弃，这一轮的屏障也不可能再被冲破了，只能进行`reset()`重置操作进行重置才能恢复正常。
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -1229,9 +1234,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以看到，当`await()`状态下的线程被中断，那么屏障会直接变成损坏状态，一旦屏障损坏，那么这一轮就无法再做任何等待操作了。也就是说，本来大家计划一起合力冲破屏障，结果有一个人摆烂中途退出了，那么所有人的努力都前功尽弃，这一轮的屏障也不可能再被冲破了（所以CyclicBarrier告诉我们，不要做那个害群之马，要相信你的团队，不然没有好果汁吃），只能进行`reset()`重置操作进行重置才能恢复正常。
-
-乍一看，怎么感觉和之前讲的CountDownLatch有点像，好了，这里就得区分一下了，千万别搞混：
+感觉和CountDownLatch有点像，这里区分一下：
 
 * CountDownLatch：
   1. 它只能使用一次，是一个一次性的工具
@@ -1240,7 +1243,8 @@ public static void main(String[] args) throws InterruptedException {
   1. 它可以反复使用，允许自动或手动重置计数
   2. 它是让一定数量的线程在同一时间开始运行的同步工具
 
-我们接着来看循环屏障的实现细节：
+***
+**实现细节**：
 
 ```java
 public class CyclicBarrier {
@@ -1415,15 +1419,14 @@ public class CyclicBarrier {
 }
 ```
 
-看完了CyclicBarrier的源码之后，是不是感觉比CountDownLatch更简单一些？
+## 信号量 Semaphore
 
-### 信号量 Semaphore
-
-还记得我们在《操作系统》中学习的信号量机制吗？它在解决进程之间的同步问题中起着非常大的作用。
+《操作系统》中学习的信号量机制在解决进程之间的同步问题中起着非常大的作用。
 
 > 信号量(Semaphore)，有时被称为信号灯，是在多线程环境下使用的一种设施，是可以用来保证两个或多个关键代码段不被并发调用。在进入一个关键代码段之前，线程必须获取一个信号量；一旦该关键代码段完成了，那么该线程必须释放信号量。其它想进入该关键代码段的线程必须等待直到第一个线程释放信号量。
 
-通过使用信号量，我们可以决定某个资源同一时间能够被访问的最大线程数，它相当于对某个资源的访问进行了流量控制。简单来说，它就是一个可以被N个线程占用的排它锁（因此也支持公平和非公平模式），我们可以在最开始设定Semaphore的许可证数量，每个线程都可以获得1个或n个许可证，当许可证耗尽或不足以供其他线程获取时，其他线程将被阻塞。
+通过使用信号量，可以决定某个资源同一时间能够被访问的最大线程数，相当于对某个资源的访问进行了流量控制。
+简单来说，它就是一个可以被N个线程占用的排它锁（因此也支持公平和非公平模式），可以在最开始设定Semaphore的许可证数量，每个线程都可以获得1个或n个许可证，当许可证耗尽或不足以供其他线程获取时，其他线程将被阻塞。
 
 ```java
 public static void main(String[] args) throws ExecutionException, InterruptedException {
@@ -1462,8 +1465,7 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 }
 ```
 
-我们也可以通过Semaphore获取一些常规信息：
-
+通过Semaphore获取一些常规信息：
 ```java
 public static void main(String[] args) throws InterruptedException {
     Semaphore semaphore = new Semaphore(3);   //只配置一个许可证，5个线程进行争抢，不内卷还想要许可证？
@@ -1476,8 +1478,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-我们可以手动回收掉所有的许可证：
-
+手动回收掉所有的许可证：
 ```java
 public static void main(String[] args) throws InterruptedException {
     Semaphore semaphore = new Semaphore(3);
@@ -1487,14 +1488,11 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-这里我们模拟一下，比如现在有10个线程同时进行任务，任务要求是执行某个方法，但是这个方法最多同时只能由5个线程执行，这里我们使用信号量就非常合适。
+比如现在有10个线程同时进行任务，任务要求是执行某个方法，但是这个方法最多同时只能由5个线程执行，这里我们使用信号量就非常合适。
 
-### 数据交换 Exchanger
-
-线程之间的数据传递也可以这么简单。
+## 数据交换 Exchanger
 
 使用Exchanger，它能够实现线程之间的数据交换：
-
 ```java
 public static void main(String[] args) throws InterruptedException {
     Exchanger<String> exchanger = new Exchanger<>();
@@ -1511,24 +1509,22 @@ public static void main(String[] args) throws InterruptedException {
 
 在调用`exchange`方法后，当前线程会等待其他线程调用同一个exchanger对象的`exchange`方法，当另一个线程也调用之后，方法会返回对方线程传入的参数。
 
-可见功能还是比较简单的。
-
-### Fork/Join框架
+## Fork/Join框架
 
 在JDK7时，出现了一个新的框架用于并行执行任务，它的目的是为了把大型任务拆分为多个小任务，最后汇总多个小任务的结果，得到整大任务的结果，并且这些小任务都是同时在进行，大大提高运算效率。Fork就是拆分，Join就是合并。
 
-我们来演示一下实际的情况，比如一个算式：18x7+36x8+9x77+8x53，可以拆分为四个小任务：18x7、36x8、9x77、8x53，最后我们只需要将这四个任务的结果加起来，就是我们原本算式的结果了，有点归并排序的味道。
-
-![image-20230306172442485](https://s2.loli.net/2023/03/06/l6iXQ4N2TfnZDMJ.png)
+比如一个算式：18x7+36x8+9x77+8x53，可以拆分为四个小任务：18x7、36x8、9x77、8x53，最后只需要将这四个任务的结果加起来即可
 
 它不仅仅只是拆分任务并使用多线程，而且还可以利用工作窃取算法，提高线程的利用率。
 
-> **工作窃取算法：**是指某个线程从其他队列里窃取任务来执行。一个大任务分割为若干个互不依赖的子任务，为了减少线程间的竞争，把这些子任务分别放到不同的队列里，并为每个队列创建一个单独的线程来执行队列里的任务，线程和队列一一对应。但是有的线程会先把自己队列里的任务干完，而其他线程对应的队列里还有任务待处理。干完活的线程与其等着，不如帮其他线程干活，于是它就去其他线程的队列里窃取一个任务来执行。
+> **工作窃取算法**：是指某个线程从其他队列里窃取任务来执行。一个大任务分割为若干个互不依赖的子任务，为了减少线程间的竞争，把这些子任务分别放到不同的队列里，并为每个队列创建一个单独的线程来执行队列里的任务，线程和队列一一对应。但是有的线程会先把自己队列里的任务干完，而其他线程对应的队列里还有任务待处理。干完活的线程与其等着，不如帮其他线程干活，于是它就去其他线程的队列里窃取一个任务来执行。
 
 ![image-20230306172457006](https://s2.loli.net/2023/03/06/DP7yj6pBZFGLoQb.png)
 
-现在我们来看看如何使用它，这里以计算1-1000的和为例，我们可以将其拆分为8个小段的数相加，比如1-125、126-250... ，最后再汇总即可，它也是依靠线程池来实现的：
+***
+例子：**计算1-1000的和**
 
+可以将其拆分为8个小段的数相加，比如1-125、126-250... ，最后再汇总，它也是依靠线程池来实现的：
 ```java
 public class Main {
     public static void main(String[] args) throws InterruptedException, ExecutionException {
@@ -1580,9 +1576,11 @@ ForkJoinPool-1-worker-7 开始计算 876-1000 的值!
 500500
 ```
 
-可以看到，结果非常正确，但是整个计算任务实际上是拆分为了8个子任务同时完成的，结合多线程，原本的单线程任务，在多线程的加持下速度成倍提升。
+可以看到，结果非常正确，整个计算任务实际上是拆分为了8个子任务同时完成的，原本的单线程任务，在多线程的加持下速度成倍提升。
 
-包括Arrays工具类提供的并行排序也是利用了ForkJoinPool来实现：
+***
+
+Arrays工具类提供的并行排序也是利用了ForkJoinPool来实现：
 
 ```java
 public static void parallelSort(byte[] a) {
@@ -1599,5 +1597,3 @@ public static void parallelSort(byte[] a) {
 ```
 
 并行排序的性能在多核心CPU环境下，肯定是优于普通排序的，并且排序规模越大优势越显著。
-
-至此，并发编程篇完结。
