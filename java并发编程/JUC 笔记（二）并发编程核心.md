@@ -432,27 +432,23 @@ public static void main(String[] args) throws InterruptedException {
 
 ### 队列同步器AQS
 
-**注意：**难度巨大，如果对锁的使用不是很熟悉建议之后再来看！
+前面了解了可重入锁和读写锁，现在来探究它们的底层实现原理【多重套娃】
 
-前面我们了解了可重入锁和读写锁，那么它们的底层实现原理到底是什么样的呢？又是大家看到就想跳过的套娃解析环节。
-
-比如我们执行了ReentrantLock的`lock()`方法，那它的内部是怎么在执行的呢？
-
+执行ReentrantLock的`lock()`方法，它的内部实际上啥都没做，而是交给了Sync对象处理
 ```java
 public void lock() {
     sync.lock();
 }
 ```
 
-可以看到，它的内部实际上啥都没做，而是交给了Sync对象在进行，并且，不只是这个方法，其他的很多方法都是依靠Sync对象在进行：
-
+其他的很多方法都是依靠Sync对象处理
 ```java
 public void unlock() {
     sync.release(1);
 }
 ```
 
-那么这个Sync对象是干什么的呢？可以看到，公平锁和非公平锁都是继承自Sync，而Sync是继承自AbstractQueuedSynchronizer，简称队列同步器：
+实际上，公平锁和非公平锁都是继承自Sync，而Sync是继承自AbstractQueuedSynchronizer，简称队列同步器：
 
 ```java
 abstract static class Sync extends AbstractQueuedSynchronizer {
@@ -463,18 +459,20 @@ static final class NonfairSync extends Sync {}
 static final class FairSync extends Sync {}
 ```
 
-所以，要了解它的底层到底是如何进行操作的，还得看队列同步器，我们就先从这里下手吧！
+所以，要了解它们的底层原理，还得看队列同步器
 
 #### 底层实现
 
-AbstractQueuedSynchronizer（下面称为AQS）是实现锁机制的基础，它的内部封装了包括锁的获取、释放、以及等待队列。
+AbstractQueuedSynchronizer（AQS）是实现锁机制的基础，它的内部封装了包括锁的获取、释放、以及等待队列。
 
-一个锁（排他锁为例）的基本功能就是获取锁、释放锁、当锁被占用时，其他线程来争抢会进入等待队列，AQS已经将这些基本的功能封装完成了，其中等待队列是核心内容，等待队列是由双向链表数据结构实现的，每个等待状态下的线程都可以被封装进结点中并放入双向链表中，而对于双向链表是以队列的形式进行操作的，它像这样：
+一个锁（排他锁为例）的基本功能就是获取锁、释放锁、当锁被占用时，其他线程来争抢会进入等待队列。
+AQS已经将这些基本的功能封装完成了，其中等待队列是核心内容，等待队列是由双向链表数据结构实现的，每个等待状态下的线程都可以被封装进结点中并放入双向链表中，双向链表是以队列的形式进行操作的，像这样：
 
 ![image-20230306171328049](https://s2.loli.net/2023/03/06/KMmHZ6g7xVO5zcG.png)
 
-AQS中有一个`head`字段和一个`tail`字段分别记录双向链表的头结点和尾结点，而之后的一系列操作都是围绕此队列来进行的。我们先来了解一下每个结点都包含了哪些内容：
+AQS中有一个`head`字段和一个`tail`字段分别记录双向链表的头结点和尾结点，而之后的一系列操作都是围绕此队列来进行的。
 
+结点：
 ```java
 //每个处于等待状态的线程都可以是一个节点，并且每个节点是有很多状态的
 static final class Node {
@@ -536,8 +534,8 @@ private transient volatile Node tail;
 private volatile int state;
 ```
 
-不用担心双向链表不会进行初始化，初始化是在实际使用时才开始的，先不管，我们接着来看其他的初始化内容：
-
+不用担心双向链表不会进行初始化，初始化是在实际使用时才开始的
+接着来看其他的初始化内容：
 ```java
 //直接使用Unsafe类进行操作
 private static final Unsafe unsafe = Unsafe.getUnsafe();
@@ -580,10 +578,12 @@ private static final boolean compareAndSetNext(Node node, Node expect, Node upda
 
 可以发现，队列同步器由于要使用到CAS算法，所以，直接使用了Unsafe工具类，Unsafe类中提供了CAS操作的方法（Java无法实现，底层由C++实现）所有对AQS类中成员字段的修改，都有对应的CAS操作封装。
 
-现在我们大致了解了一下它的底层运作机制，我们接着来看这个类是如何进行使用的，它提供了一些可重写的方法（根据不同的锁类型和机制，可以自由定制规则，并且为独占式和非独占式锁都提供了对应的方法），以及一些已经写好的模板方法（模板方法会调用这些可重写的方法），使用此类只需要将可重写的方法进行重写，并调用提供的模板方法，从而实现锁功能（学习过设计模式会比较好理解一些）
+***
+接着来看这个类是如何进行使用的
 
-我们首先来看可重写方法：
+它提供了一些可重写的方法（根据不同的锁类型和机制，可以自由定制规则，并且为独占式和非独占式锁都提供了对应的方法），以及一些已经写好的模板方法（模板方法会调用这些可重写的方法），使用此类只需要将可重写的方法进行重写，并调用提供的模板方法，从而实现锁功能
 
+可重写方法：
 ```java
 //独占式获取同步状态，查看同步状态是否和参数一致，如果返没有问题，那么会使用CAS操作设置同步状态并返回true
 protected boolean tryAcquire(int arg) {
@@ -611,7 +611,10 @@ protected boolean isHeldExclusively() {
 }
 ```
 
-可以看到，这些需要重写的方法默认是直接抛出`UnsupportedOperationException`，也就是说根据不同的锁类型，我们需要去实现对应的方法，我们可以来看一下ReentrantLock（此类是全局独占式的）中的公平锁是如何借助AQS实现的：
+可以看到，这些需要重写的方法默认是直接抛出`UnsupportedOperationException`，也就是说根据不同的锁类型，需要去实现对应的方法
+
+看一下ReentrantLock（此类是全局独占式的）中的公平锁是如何借助AQS实现的：
+加锁操作直接调用了AQS提供的模板方法`acquire()`，
 
 ```java
 static final class FairSync extends Sync {
@@ -627,7 +630,7 @@ static final class FairSync extends Sync {
 }
 ```
 
-我们先看看加锁操作干了什么事情，这里直接调用了AQS提供的模板方法`acquire()`，我们来看看它在AQS类中的实现细节：
+模板方法`acquire()`在AQS类中的实现细节：
 
 ```java
 @ReservedStackAccess //这个是JEP 270添加的新注解，它会保护被注解的方法，通过添加一些额外的空间，防止在多线程运行的时候出现栈溢出，下同
@@ -675,7 +678,7 @@ private Node enq(final Node node) {
 }
 ```
 
-在了解了`addWaiter()`方法会将节点加入等待队列之后，我们接着来看，`addWaiter()`会返回已经加入的节点，`acquireQueued()`在得到返回的节点时，也会进入自旋状态，等待唤醒（也就是开始进入到拿锁的环节了）：
+`addWaiter()`方法会将节点加入等待队列，接着会返回已经加入的节点，`acquireQueued()`在得到返回的节点时，也会进入自旋状态，等待唤醒（也就是开始进入到拿锁的环节了）：
 
 ```java
 @ReservedStackAccess
@@ -757,7 +760,10 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-这里我们就把公平锁的`lock()`方法实现讲解完毕了（让我猜猜，已经晕了对吧，越是到源码越考验个人的基础知识掌握，基础不牢地动山摇）接着我们来看公平锁的`tryAcquire()`方法：
+这里就把公平锁的`lock()`方法实现了解完了
+
+***
+公平锁的`tryAcquire()`方法：
 
 ```java
 static final class FairSync extends Sync {
@@ -785,9 +791,9 @@ static final class FairSync extends Sync {
 }
 ```
 
-在了解了公平锁的实现之后，是不是感觉有点恍然大悟的感觉，虽然整个过程非常复杂，但是只要理清思路，还是比较简单的。
+***
 
-加锁过程已经OK，我们接着来看，它的解锁过程，`unlock()`方法是在AQS中实现的：
+加锁过程已经OK，接着来看解锁过程，`unlock()`方法是在AQS中实现的：
 
 ```java
 public void unlock() {
@@ -828,7 +834,7 @@ private void unparkSuccessor(Node node) {
 }
 ```
 
-那么我们来看看`tryRelease()`方法是怎么实现的，具体实现在Sync中：
+`tryRelease()`方法是怎么实现的，具体实现在Sync中：
 
 ```java
 @ReservedStackAccess
@@ -846,7 +852,7 @@ protected final boolean tryRelease(int releases) {
 }
 ```
 
-综上，我们来画一个完整的流程图：
+综上，画一个完整的流程图：
 
 ![image-20230306171428206](https://s2.loli.net/2023/03/06/fUmwyGTRdCKAOlM.png)
 
@@ -854,10 +860,12 @@ protected final boolean tryRelease(int releases) {
 
 #### 公平锁一定公平吗？
 
-前面我们讲解了公平锁的实现原理，那么，我们尝试分析一下，在并发的情况下，公平锁一定公平吗？
+并发的情况下，公平锁一定公平吗？
+先说结论：**公平锁，只有在等待队列存在节点时，才是真正公平的**
 
-我们再次来回顾一下`tryAcquire()`方法的实现：
+***
 
+回顾一下`tryAcquire()`方法的实现：
 ```java
 @ReservedStackAccess
 protected final boolean tryAcquire(int acquires) {
@@ -917,7 +925,7 @@ private Node addWaiter(Node mode) {
 }
 ```
 
-而碰巧不巧，这个时候线程3也来抢锁了，按照正常流程走到了`hasQueuedPredecessors()`方法，而在此方法中：
+而这个时候线程3也来抢锁了，按照正常流程走到了`hasQueuedPredecessors()`方法，在此方法中：
 
 ```java
 public final boolean hasQueuedPredecessors() {
@@ -930,17 +938,19 @@ public final boolean hasQueuedPredecessors() {
 }
 ```
 
-因此，线程3这时就紧接着准备开始CAS操作了，又碰巧，这时线程1释放锁了，现在的情况就是，线程3直接开始CAS判断，而线程2还在插入节点状态，结果可想而知，居然是线程3先拿到了锁，这显然是违背了公平锁的公平机制。
-
-一张图就是：
+因此，线程3这时就紧接着准备开始CAS操作了，碰巧这时线程1释放锁了，现在的情况就是，线程3直接开始CAS判断，而线程2还在插入节点状态。
+结果可想而知，居然是线程3先拿到了锁，这显然是违背了公平锁的公平机制。
 
 ![image-20230814160110441](https://s2.loli.net/2023/08/14/5IwjDocXvHpkW8O.png)
 
-因此公不公平全看`hasQueuedPredecessors()`，而此方法只有在等待队列中存在节点时才能保证不会出现问题。所以公平锁，只有在等待队列存在节点时，才是真正公平的。
+因此公不公平全看`hasQueuedPredecessors()`，而此方法只有在等待队列中存在节点时才能保证不会出现问题。
+**所以公平锁，只有在等待队列存在节点时，才是真正公平的**
 
 #### Condition实现原理
 
-通过前面的学习，我们知道Condition类实际上就是用于代替传统对象的wait/notify操作的，同样可以实现等待/通知模式，并且同一把锁下可以创建多个Condition对象。那么我们接着来看看，它又是如何实现的呢，我们先从单个Condition对象进行分析：
+Condition类实际上就是用于代替传统对象的wait/notify操作的，同样可以实现等待/通知模式，并且同一把锁下可以创建多个Condition对象。
+
+要探究它的实现原理，先从单个Condition对象进行分析：
 
 在AQS中，Condition有一个实现类ConditionObject，而这里也是使用了链表实现了条件队列：
 
@@ -959,17 +969,16 @@ public class ConditionObject implements Condition, java.io.Serializable {
 
 ![image-20230306171600419](https://s2.loli.net/2023/03/06/h7z96EeqVvpHOLQ.png)
 
-我们知道，当一个线程调用`await()`方法时，会进入等待状态，直到其他线程调用`signal()`方法将其唤醒，而这里的条件队列，正是用于存储这些处于等待状态的线程。
+当一个线程调用`await()`方法时，会进入等待状态，直到其他线程调用`signal()`方法将其唤醒，而这里的条件队列，正是用于存储这些处于等待状态的线程。
 
-我们先来看看最关键的`await()`方法是如何实现的，为了防止一会绕晕，在开始之前，我们先明确此方法的目标：
+先来看看最关键的`await()`方法是如何实现的，此方法的目标：
 
 * 只有已经持有锁的线程才可以使用此方法
 * 当调用此方法后，会直接释放锁，无论加了多少次锁
 * 只有其他线程调用`signal()`或是被中断时才会唤醒等待中的线程
 * 被唤醒后，需要等待其他线程释放锁，拿到锁之后才可以继续执行，并且会恢复到之前的状态（await之前加了几层锁唤醒后依然是几层锁）
 
-好了，差不多可以上源码了：
-
+上源码：
 ```java
 public final void await() throws InterruptedException {
     if (Thread.interrupted())
@@ -994,7 +1003,9 @@ public final void await() throws InterruptedException {
 }
 ```
 
-实际上`await()`方法比较中规中矩，大部分操作也在我们的意料之中，那么我们接着来看`signal()`方法是如何实现的，同样的，为了防止各位绕晕，先明确signal的目标：
+`await()`方法大部分操作在意料之中
+
+接着来看`signal()`方法是如何实现的，此方法的目标：
 
 * 只有持有锁的线程才能唤醒锁所属的Condition等待的线程
 * 优先唤醒条件队列中的第一个，如果唤醒过程中出现问题，接着找往下找，直到找到一个可以唤醒的
@@ -1003,8 +1014,7 @@ public final void await() throws InterruptedException {
 
 ![image-20230306171620786](https://s2.loli.net/2023/03/06/UjG1Dd5xNJhIyWm.png)
 
-好了，上源码：
-
+上源码：
 ```java
 public final void signal() {
     if (!isHeldExclusively())    //先看看当前线程是不是持有锁的状态
@@ -1045,7 +1055,7 @@ final boolean transferForSignal(Node node) {
 }
 ```
 
-其实最让人不理解的就是倒数第二行，明明上面都正常进入到AQS等待队列了，应该是可以开始走正常流程了，那么这里为什么还要提前来一次unpark呢？
+最让人不理解的就是倒数第二行，明明上面都正常进入到AQS等待队列了，应该是可以开始走正常流程了，那么这里为什么还要提前来一次unpark呢？
 
 这里其实是为了进行优化而编写，直接unpark会有两种情况：
 
@@ -1061,13 +1071,11 @@ final boolean transferForSignal(Node node) {
 
 ![image-20230306171643082](https://s2.loli.net/2023/03/06/w9hvtNyAM74pO8m.png)
 
-只要把整个流程理清楚，还是很好理解的。
-
 #### 自行实现锁类
 
-既然前面了解了那么多AQS的功能，那么我就仿照着这些锁类来实现一个简单的锁：
+了解了那么多AQS的功能，现在就可以仿照着这些锁类来实现一个简单的锁：
 
-* 要求：同一时间只能有一个线程持有锁，不要求可重入（反复加锁无视即可）
+要求：同一时间只能有一个线程持有锁，不要求可重入（反复加锁无视即可）
 
 ```java
 public class Main {
@@ -1153,10 +1161,6 @@ public class Main {
     }
 }
 ```
-
-到这里，我们对应队列同步器AQS的讲解就先到此为止了，当然，AQS的全部机制并非仅仅只有我们讲解的内容，一些我们没有提到的内容，还请各位观众自行探索，会有满满的成就感哦~
-
-***
 
 ## 原子类
 
