@@ -25,9 +25,9 @@ public static void main(String[] args) {
 }
 ```
 
-我们来看看，它变成字节码之后会用到哪些指令：
+它变成字节码之后：
 
-![image-20230306170923799](https://s2.loli.net/2023/03/06/NFQ1m6gpz5WEZxV.png)
+![img/案例字节码.png](img/案例字节码.png)
 
 其中最关键的就是`monitorenter`指令了，可以看到之后也有`monitorexit`与之进行匹配（注意这里有2个），`monitorenter`和`monitorexit`分别对应加锁和释放锁。
 在执行`monitorenter`之前需要尝试获取锁，每个对象都有一个`monitor`监视器与之对应，而这里正是去获取对象监视器的所有权，一旦`monitor`所有权被某个线程持有，那么其他线程将无法获得（管程模型的一种实现）。
@@ -37,14 +37,14 @@ public static void main(String[] args) {
 首先来看第一个，这里在释放锁之后，会马上进入到一个goto指令，跳转到15行，而15行对应的指令就是方法的返回指令，其实正常情况下只会执行第一个`monitorexit`释放锁，在释放锁之后就接着同步代码块后面的内容继续向下执行了。
 而第二个，其实是用来处理异常的，它的位置是在12行，如果程序运行发生异常，那么就会执行第二个`monitorexit`，并且会继续向下通过`athrow`指令抛出异常，而不是直接跳转到15行正常运行下去。
 
-![image-20230306170938130](https://s2.loli.net/2023/03/06/bYUPEDwoBdkSxi3.png)
+![img/synchronized流程.png](img/synchronized流程.png)
 
 实际上`synchronized`使用的锁就是存储在Java对象头中的
 对象是存放在堆内存中的，而每个对象内部，都有一部分空间用于存储对象头信息，而对象头信息中，则包含了Mark Word用于存放`hashCode`和对象的锁信息，在不同状态下，它存储的数据结构有一些不同。
 
-![image-20230306170949225](https://s2.loli.net/2023/03/06/w5kq4gbBHcCMv1L.png)
+![img/对象内部结构.png](img/对象内部结构.png)
 
-## 重量级锁
+## 重量级锁和自旋锁
 
 在JDK6之前，`synchronized`一直被称为重量级锁，`monitor`依赖于底层操作系统的Lock实现，Java的线程是映射到操作系统的原生线程上，切换成本较高。
 而在JDK6之后，锁的实现得到了改进。
@@ -76,7 +76,7 @@ ObjectMonitor() {
 
 每个等待锁的线程都会被封装成ObjectWaiter对象，进入到如下机制：
 
-![image-20230306171005840](https://s2.loli.net/2023/03/06/OvufwzKx7l6yNMB.png)
+![img/ObjectWaiter.png](img/ObjectWaiter.png)
 
 ObjectWaiter首先会进入 Entry Set等着，当线程获取到对象的`monitor`后进入 The Owner 区域并把`monitor`中的`owner`变量设置为当前线程，同时`monitor`中的计数器`count`加1，若线程调用`wait()`方法，将释放当前持有的`monitor`，`owner`变量恢复为`null`，`count`自减1，同时该线程进入 WaitSet集合中等待被唤醒。若当前线程执行完毕也将释放`monitor`并复位变量的值，以便其他线程进入获取对象的`monitor`。
 
@@ -88,8 +88,6 @@ ObjectWaiter首先会进入 Entry Set等着，当线程获取到对象的`monito
 
 当然，仅仅是在等待时间非常短的情况下，自旋锁的表现会很好，但是如果等待时间太长，由于循环是需要处理器继续运算的，所以这样只会浪费处理器资源。
 因此自旋锁的等待时间是有限制的，默认情况下为10次，如果失败，那么会进而采用重量级锁机制。
-
-![image-20230306171016377](https://s2.loli.net/2023/03/06/9ifjs1mWwIxEKOP.png)
 
 在JDK6之后，自旋锁得到了一次优化，自旋的次数限制不再是固定的，而是自适应变化的。
 比如在同一个锁对象上，自旋等待刚刚成功获得过锁，并且持有锁的线程正在运行，那么这次自旋也是有可能成功的，所以会允许自旋更多次。当然，如果某个锁经常都自旋失败，那么有可能会不再采用自旋策略，而是直接使用重量级锁。
@@ -113,7 +111,7 @@ ObjectWaiter首先会进入 Entry Set等着，当线程获取到对象的`monito
 
 这时，轻量级锁一开始的想法就是错的（这时有对象在竞争资源，已经赌输了），所以说只能将锁膨胀为重量级锁，按照重量级锁的操作执行（注意锁的膨胀是不可逆的）
 
-![image-20230306171031953](https://s2.loli.net/2023/03/06/p54mXYhWdGbiVfn.png)
+![img/轻量级锁流程.png](img/轻量级锁流程.png)
 
 所以，轻量级锁 -> 失败 -> 自适应自旋锁 -> 失败 -> 重量级锁
 
@@ -131,7 +129,7 @@ ObjectWaiter首先会进入 Entry Set等着，当线程获取到对象的`monito
 
 值得注意的是，如果对象通过调用`hashCode()`方法计算过对象的一致性哈希值，那么它是不支持偏向锁的，会直接进入到轻量级锁状态，因为Hash是需要被保存的，而偏向锁的Mark Word数据结构，无法保存Hash值；如果对象已经是偏向锁状态，再去调用`hashCode()`方法，那么会直接将锁升级为重量级锁，并将哈希值存放在`monitor`（有预留位置保存）中。
 
-![image-20230306171047283](https://s2.loli.net/2023/03/06/1fQs3C5BKZgamc9.png)
+![img/偏向锁流程.png](img/偏向锁流程.png)
 
 ## 锁消除和锁粗化
 
