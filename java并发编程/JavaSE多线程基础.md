@@ -45,6 +45,8 @@ public interface Runnable {
 }
 ```
 
+***
+**例一**
 在主线程中创建一个新线程并启动运行：
 ```java
 public static void main(String[] args) {
@@ -72,7 +74,7 @@ public static void main(String[] args) {
 ```
 
 ***
-再来看一个例子
+**例二**
 ```java
 public static void main(String[] args) {
     Thread t1 = new Thread(() -> {
@@ -286,14 +288,11 @@ public static void main(String[] args) {
 
 多线程情况下Java的内存管理：
 
-![image-20221004203914215](https://s2.loli.net/2022/10/04/ZvI8neF3tdGJwS4.png)
+![img/多线程内存模型png.png](https://image.itbaima.net/images/253/image-20230831129418640.png)
 
 线程之间的共享变量存储在主内存（main memory）中，每个线程都有一个私有的工作内存（本地内存），工作内存中存储了该线程以读/写共享变量的副本。
 
 这种设计类似于多核心处理器高速缓存机制：
-
-![image-20221004204209038](https://s2.loli.net/2022/10/04/SKlbIZyvxMnauLJ.png)
-
 高速缓存通过保存内存中数据的副本来提供更加快速的数据访问，但是如果多个处理器的运算任务都涉及同一块内存区域，就可能导致各自的高速缓存数据不一致，在写回主内存时就会发生冲突。这就是引入高速缓存引发的新问题：**缓存一致性。**
 
 Java的内存模型也是如此，当多线程同时去操作一个共享变量时，如果仅仅是读取还好，但是如果同时写入内容，就会出现问题
@@ -461,6 +460,12 @@ jstack自动帮助我们找到了一个死锁，并打印出了相关线程的�
 
 `wait()`、`notify()`以及`notifyAll()`需要配合synchronized来使用，只有在同步代码块中才能使用这些方法，不然会报错
 
+wait和sleep的区别：
+* wait来自object类, sleep来自线程类
+* wait会释放锁, sleep不会释放锁
+* wait必须在同步代码块中，sleep可以在任何地方睡眠
+* wait是不需要捕获异常，sleep必须要捕获异常
+
 例子
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -601,7 +606,7 @@ public static void main(String[] args) {
 # 定时器
 
 Java提供了一套自己的框架用于处理定时任务：
-通过Timer对象可以创建任意类型的定时任务，包括延时任务、循环定时任务等。
+通过`Timer`对象可以创建任意类型的定时任务，包括延时任务、循环定时任务等。
 ```java
 public static void main(String[] args) {
     Timer timer = new Timer();    //创建定时器对象
@@ -841,10 +846,7 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-有些时候运气不好，得到的结果并不是2000个元素，而是：
-
-![image-20221004212332535](https://s2.loli.net/2022/10/04/m1nZfG4wPCOQx8V.png)
-
+有些时候运气不好，得到的结果并不是2000个元素，而是会抛出数组越界的异常
 因为之前的集合类，并没有考虑到多线程运行的情况，如果两个线程同时执行，那么有可能两个线程同一时间都执行同一个方法，这种情况下就很容易出问题：
 
 ```java
@@ -883,9 +885,3 @@ public static void main(String[] args) throws InterruptedException {
 ```
 
 >JUC并发编程有自己专门的集合类
-
-# 实战：生产者与消费者
-
-所谓的生产者消费者模型，是通过一个容器来解决生产者和消费者的强耦合问题。通俗的讲，就是生产者在不断的生产，消费者也在不断的消费，可是消费者消费的产品是生产者生产的，这就必然存在一个中间容器，我们可以把这个容器想象成是一个货架，当货架空的时候，生产者要生产产品，此时消费者在等待生产者往货架上生产产品，而当货架有货物的时候，消费者可以从货架上拿走商品，生产者此时等待货架出现空位，进而补货，这样不断的循环。
-
-通过多线程编程，来模拟一个餐厅的2个厨师和3个顾客，假设厨师炒出一个菜的时间为3秒，顾客吃掉菜品的时间为4秒。

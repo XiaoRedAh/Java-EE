@@ -1411,16 +1411,13 @@ public static void main(String[] args) throws InterruptedException {
 
 ## 并发容器
 
-简单的讲完了，又该讲难一点的了。
+重点在于探究并发容器是如何利用锁机制和算法实现各种丰富功能的，忽略一些常规功能的实现细节（比如链表如何插入元素删除元素），而更关注并发容器应对并发场景算法上的实现（比如在多线程环境下的插入操作是按照什么规则进行的）
 
-**注意：**本版块的重点在于探究并发容器是如何利用锁机制和算法实现各种丰富功能的，我们会忽略一些常规功能的实现细节（比如链表如何插入元素删除元素），而更关注并发容器应对并发场景算法上的实现（比如在多线程环境下的插入操作是按照什么规则进行的）
-
-在单线程模式下，集合类提供的容器可以说是非常方便了，几乎我们每个项目中都能或多或少的用到它们，我们在JavaSE阶段，为各位讲解了各个集合类的实现原理，我们了解了链表、顺序表、哈希表等数据结构，那么，在多线程环境下，这些数据结构还能正常工作吗？
+在单线程模式下，集合类提供的容器非常方便，然而在多线程环境下，这些数据结构还能正常工作吗？
 
 ### 传统容器线程安全吗
 
-我们来测试一下，100个线程同时向ArrayList中添加元素会怎么样：
-
+100个线程同时向ArrayList中添加元素：
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -1437,8 +1434,7 @@ public class Main {
 }
 ```
 
-不出意外的话，肯定是会报错的：
-
+报错：
 ```
 Exception in thread "Thread-0" java.lang.ArrayIndexOutOfBoundsException: 73
 	at java.util.ArrayList.add(ArrayList.java:465)
@@ -1451,8 +1447,7 @@ Exception in thread "Thread-19" java.lang.ArrayIndexOutOfBoundsException: 1851
 9773
 ```
 
-那么我们来看看报的什么错，从栈追踪信息可以看出，是add方法出现了问题：
-
+从栈追踪信息可以看出，是add方法出现了问题：
 ```java
 public boolean add(E e) {
     ensureCapacityInternal(size + 1);  // Increments modCount!!
@@ -1461,10 +1456,11 @@ public boolean add(E e) {
 }
 ```
 
-也就是说，同一时间其他线程也在疯狂向数组中添加元素，那么这个时候有可能在`ensureCapacityInternal`（确认容量足够）执行之后，`elementData[size++] = e;`执行之前，其他线程插入了元素，导致size的值超出了数组容量。这些在单线程的情况下不可能发生的问题，在多线程下就慢慢出现了。
+同一时间多个线程疯狂向数组中添加元素，那么这个时候有可能在`ensureCapacityInternal`（确认容量足够）执行之后，`elementData[size++] = e;`执行之前，其他线程插入了元素，导致size的值超出了数组容量。
 
-我们再来看看比较常用的HashMap呢？
+***
 
+常用的HashMap
 ```java
 public static void main(String[] args) throws InterruptedException {
     Map<Integer, String> map = new HashMap<>();
@@ -1480,15 +1476,20 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-经过测试发现，虽然没有报错，但是最后的结果并不是我们期望的那样，实际上它还有可能导致Entry对象出现环状数据结构，引起死循环。
+经过测试发现，虽然没有报错，但是最后的结果并不是期望的那样
+实际上它还有可能导致Entry对象出现环状数据结构，引起死循环。
 
-所以，在多线程环境下，要安全地使用集合类，我们得找找解决方案了。
+所以，在多线程环境下，要安全地使用集合类，不是一件简单的事
 
 ### 并发容器介绍
 
-怎么才能解决并发情况下的容器问题呢？我们首先想到的肯定是给方法前面加个`synchronzed`关键字，这样总不会抢了吧，在之前我们可以使用Vector或是Hashtable来解决，但是它们的效率实在是太低了，完全依靠锁来解决问题，因此现在已经很少再使它们了，这里也不会再去进行讲解。
+解决并发情况下的容器问题，首先想到的是给方法前面加个`synchronzed`关键字，或者使用Vector/Hashtable来解决，但是它们完全依靠锁来解决问题，效率实在是太低了，现在已经很少使用它们了。
 
-JUC提供了专用于并发场景下的容器，比如我们刚刚使用的ArrayList，在多线程环境下是没办法使用的，我们可以将其替换为JUC提供的多线程专用集合类：
+JUC提供了专用于并发场景下的容器
+
+#### CopyOnWriteArrayList
+
+在多线程环境下没办法安全使用的ArrayList，JUC提供了多线程专用的`CopyOnWriteArrayList`集合类：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -1504,10 +1505,8 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-我们发现，使用了`CopyOnWriteArrayList`之后，再没出现过上面的问题。
-
-那么它是如何实现的呢，我们先来看看它是如何进行`add()`操作的：
-
+它的`add()`操作：
+添加操作是直接上锁，并且会先拷贝一份当前存放元素的数组，然后对数组进行修改，再将此数组替换（CopyOnWrite）
 ```java
 public boolean add(E e) {
     final ReentrantLock lock = this.lock;
@@ -1525,17 +1524,18 @@ public boolean add(E e) {
 }
 ```
 
-可以看到添加操作是直接上锁，并且会先拷贝一份当前存放元素的数组，然后对数组进行修改，再将此数组替换（CopyOnWrite）接着我们来看读操作：
-
+`get()`读操作：
 ```java
 public E get(int index) {
     return get(getArray(), index);
 }
 ```
 
-因此，`CopyOnWriteArrayList`对于读操作不加锁，而对于写操作是加锁的，类似于我们前面讲解的读写锁机制，这样就可以保证不丢失读性能的情况下，写操作不会出现问题。
+综上，`CopyOnWriteArrayList`对于读操作不加锁，而对于写操作是加锁的。这样就可以保证不丢失读性能的情况下，写操作不会出现问题。
 
-接着我们来看对于HashMap的并发容器`ConcurrentHashMap`：
+#### ConcurrentHashMap
+
+在多线程环境下没办法安全使用的HashMap，JUC提供了多线程专用的`ConcurrentHashMap`集合类：
 
 ```java
 public static void main(String[] args) throws InterruptedException {
@@ -1552,21 +1552,23 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-可以看到这里的ConcurrentHashMap就没有出现之前HashMap的问题了。因为线程之间会争抢同一把锁，我们之前在讲解LongAdder的时候学习到了一种压力分散思想，既然每个线程都想抢锁，那我就干脆多搞几把锁，让你们每个人都能拿到，这样就不会存在等待的问题了，而JDK7之前，ConcurrentHashMap的原理也比较类似，它将所有数据分为一段一段地存储，先分很多段出来，每一段都给一把锁，当一个线程占锁访问时，只会占用其中一把锁，也就是仅仅锁了一小段数据，而其他段的数据依然可以被其他线程正常访问。
+在JDK7之前，ConcurrentHashMap将所有数据分为一段一段地存储，先分很多段出来，每一段都给一把锁，当一个线程占锁访问时，只会占用其中一把锁，也就是仅仅锁了一小段数据，而其他段的数据依然可以被其他线程正常访问。
 
 ![image-20230306171955430](https://s2.loli.net/2023/03/06/elxSQDBkcmqWtGU.png)
 
-这里我们重点讲解JDK8之后它是怎么实现的，它采用了CAS算法配合锁机制实现，我们先来回顾一下JDK8下的HashMap是什么样的结构：
+JDK8之后，ConcurrentHashMap采用了CAS算法配合锁机制实现，回顾一下JDK8下的HashMap的结构：
 
 ![img](https://s2.loli.net/2023/08/14/bI7At2sXqRwjolF.jpg)
 
-HashMap就是利用了哈希表，哈希表的本质其实就是一个用于存放后续节点的头结点的数组，数组里面的每一个元素都是一个头结点（也可以说就是一个链表），当要新插入一个数据时，会先计算该数据的哈希值，找到数组下标，然后创建一个新的节点，添加到对应的链表后面。当链表的长度达到8时，会自动将链表转换为红黑树，这样能使得原有的查询效率大幅度降低！当使用红黑树之后，我们就可以利用二分搜索的思想，快速地去寻找我们想要的结果，而不是像链表一样挨个去看。
+HashMap就是利用了哈希表，哈希表的本质其实就是一个用于存放后续节点的头结点的数组，数组里面的每一个元素都是一个头结点（也可以说就是一个链表），当要新插入一个数据时，会先计算该数据的哈希值，找到数组下标，然后创建一个新的节点，添加到对应的链表后面。当链表的长度达到8时，会自动将链表转换为红黑树，这样能使得原有的查询效率大幅度降低！当使用红黑树之后，就可以利用二分搜索的思想，快速地去寻找我们想要的结果，而不是像链表一样挨个去看。
 
-又是基础不牢地动山摇环节，由于ConcurrentHashMap的源码比较复杂，所以我们先从最简单的构造方法开始下手：
+由于ConcurrentHashMap的源码比较复杂，所以先从最简单的构造方法开始下手：
 
 ![image-20230306172041623](https://s2.loli.net/2023/03/06/DEFR3d6gzOf7oNs.png)
 
-我们发现，它的构造方法和HashMap的构造方法有很大的出入，但是大体的结构和HashMap是差不多的，也是维护了一个哈希表，并且哈希表中存放的是链表或是红黑树，所以我们直接来看`put()`操作是如何实现的，只要看明白这个，基本上就懂了：
+它的构造方法和HashMap的构造方法有很大的出入，但是大体的结构和HashMap是差不多的，也是维护了一个哈希表，并且哈希表中存放的是链表或是红黑树
+
+`put()`操作是如何实现的：
 
 ```java
 public V put(K key, V value) {
@@ -1615,11 +1617,11 @@ final V putVal(K key, V value, boolean onlyIfAbsent) {
 }
 ```
 
-怎么样，是不是感觉看着挺复杂，其实也还好，总结一下就是：
+总结一下就是：
 
 ![image-20230306172102878](https://s2.loli.net/2023/03/06/qvRH4wsIi9fczVh.png)
 
-我们接着来看看`get()`操作：
+`get()`操作：
 
 ```java
 public V get(Object key) {
@@ -1649,7 +1651,7 @@ public V get(Object key) {
 
 综上，ConcurrentHashMap的put操作，实际上是对哈希表上的所有头结点元素分别加锁，理论上来说哈希表的长度很大程度上决定了ConcurrentHashMap在同一时间能够处理的线程数量，这也是为什么`treeifyBin()`会优先考虑为哈希表进行扩容的原因。显然，这种加锁方式比JDK7的分段锁机制性能更好。
 
-其实这里也只是简单地介绍了一下它的运行机制，ConcurrentHashMap真正的难点在于扩容和迁移操作，我们主要了解的是他的并发执行机制，有关它的其他实现细节，这里暂时不进行讲解。
+这里只是简单地介绍了一下它的并发运行机制，ConcurrentHashMap真正的难点在于扩容和迁移操作
 
 ### 阻塞队列
 
