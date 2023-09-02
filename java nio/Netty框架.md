@@ -133,7 +133,7 @@ Netty实际上应用场景非常多
 </dependencies>
 ```
 
-# 参考文章
+## 参考文章
 
 [Netty全过程图解](https://blog.csdn.net/qq_38685503/article/details/114168722)
 
@@ -555,7 +555,7 @@ public interface AttributeMap {
 
 >ChannelHandler实际上就是之前Reactor模式中的Handler，处理 I/O 事件或拦截 I/O 操作，并将其转发到其 ChannelPipeline（业务处理链）中的下一个处理程序。它充当所有入站和出站数据的应用程序逻辑的容器，全靠它来处理读写操作。
 
-![img/ChannelHandler接口层级.png](img/ChannelHandler接口层级.png)
+![img/ChannelHandler接口层级.png](https://image.itbaima.net/images/253/image-20230902173120067.png)
 
 顶层接口ChannelHandler：
 这个接口的定义比较简单，就只有一些流水线相关的回调方法
@@ -733,7 +733,7 @@ ChannelPipeline 实现了一种高级形式的拦截过滤器模式，使用户�
 每一个Channel都对应一个ChannelPipeline（在Channel初始化时就被创建了）
 每一个ChannelPipeline都维护了一个由ChannelHandlerContext构成的双向链表
 每一个ChannelHandlerContext关联一个ChannelHandler
-![img/三者关系png.png](img/三者关系png.png)
+![img/三者关系png.png](https://image.itbaima.net/images/253/image-20230902179749267.png)
 
 ### 示例
 

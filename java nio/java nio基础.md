@@ -13,11 +13,11 @@ Java 共支持 3 种I/O 模型：BIO、NIO、AIO。
 
 Java BIO：同步并阻塞（传统阻塞型）。服务器实现模式为一个线程处理一个请求（连接），也就是客户端有连接请求时，服务器端就需要启动一个线程进行处理，如果这个连接不做任何事情，就造成不必要的线程开销。
 简单示意图如下：
-![](img/BIO图示.png)
+![img/BIO图示.png](https://image.itbaima.net/images/253/image-20230902179045501.png)
 
 Java NIO：同步非阻塞。服务器实现模式为一个线程处理多个请求（连接），即客户端发送的连接请求都会注册到多路复用器Selector上，多路复用器轮询到连接有 I/O 请求就进行处理。
 简单示意图如下：
-![](img/NIO图示.png)
+![img/NIO图示.png](https://image.itbaima.net/images/253/image-20230902173390559.png)
 
 Java AIO(NIO.2)：异步非阻塞，AIO 引入异步通道的概念，采用了 Proactor 模式，简化了程序编写，有效的请求才启动线程，它的特点是先由操作系统完成后才通知服务端程序启动线程去处理，一般适用于连接数较多且连接时间较长的应用。
 AIO在JDK7中首次提出，目前还没有广泛应用
@@ -40,7 +40,7 @@ AIO 方式使用于连接数目多且连接比较长（重操作）的架构，�
 
 NIO有三大核心部分: Buffer（缓冲区）、Channel（通道）、Selector（选择器）
 
-![](img/NIO三大核心部分.png)
+![img/NIO三大核心部分.png](https://image.itbaima.net/images/253/image-20230902175145553.png)
 
 每个 Channel 都会对应一个 Buffer。
 Selector 对应一个线程，一个线程可以对应多个 Channel（连接）。

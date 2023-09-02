@@ -12,7 +12,7 @@ HTTP1.1有一个 keep-alive，这使得在一个 HTTP 连接中，可以发送�
 **WebSocket协议：持久化,双向通信协议**
 客户端发起连接后，就会⼀直保持连接，期间客户端和服务端都可以向对⽅发送数据，直到连接关闭。
 
-![](img/websocket和http.png)
+![img/websocket和http.png](https://image.itbaima.net/images/253/image-2023090217962529.png)
 
 相同点： 都是一样基于TCP的，都是可靠性传输协议。都是应用层协议。
 
