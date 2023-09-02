@@ -4,7 +4,7 @@
 
 JSON Web Token，是一个基于 RFC 7519 的开放数据标准，它定义了一种宽松且紧凑的数据组合方式。其作用是：**JWT是一种加密后数据载体，可在各应用之间进行数据传输**。JWT可以使用密钥（使用**HMAC**算法）或使用**RSA**或**ECDSA**进行公钥/私钥对进行签名。
 
-![img/JWT示例.png](img/JWT示例.png)
+![img/JWT示例.png](https://image.itbaima.net/images/253/image-20230902162497095.png)
 
 JWT中一般涵盖了用户身份信息，每次访问时，server校验信息合法性即可。
 
@@ -16,7 +16,7 @@ JWT中一般涵盖了用户身份信息，每次访问时，server校验信息�
 header.payload.signature
 ```
 
-![img/JWT组成.png](img/JWT组成.png)
+![img/JWT组成.png](https://image.itbaima.net/images/253/image-20230902161609043.png)
 
 
 
@@ -391,7 +391,7 @@ public class JwtTokenUtil {
 
 **需求：当用户注册成功，给指定邮箱发送一个激活链接，当用户点击激活链接后，激活账号。**
 
-*![img/邮箱激活案例.png](img/邮箱激活案例.png)*
+![img/邮箱激活案例.png](https://image.itbaima.net/images/253/image-2023090216526076.png)
 
 **分析**
 * 设计一个注册接口/regist，请求成功后模拟下发激活链接(链接本质是激活接口参数为：jwt)
